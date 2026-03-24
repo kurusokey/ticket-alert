@@ -602,17 +602,49 @@
         }
 
         // ══════════════════════════════════════
+        // STORAGE (API + localStorage fallback)
+        // ══════════════════════════════════════
+
+        const LS_KEY = 'ticket_alert_events';
+
+        function lsGetEvents() {
+            try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+            catch { return []; }
+        }
+
+        function lsSaveEvents(data) {
+            localStorage.setItem(LS_KEY, JSON.stringify(data));
+        }
+
+        async function apiCall(path, opts = {}) {
+            try {
+                const res = await fetch(`${API}${path}`, opts);
+                if (res.ok) return await res.json();
+            } catch {}
+            return null;
+        }
+
+        // ══════════════════════════════════════
         // EVENTS
         // ══════════════════════════════════════
 
         async function loadEvents() {
-            try {
-                const res = await fetch(`${API}/api/events`);
-                events = await res.json();
-                renderEvents();
-            } catch (e) {
-                showToast('Impossible de contacter le serveur', true);
+            // Try API first
+            const data = await apiCall('/api/events');
+            if (data && Array.isArray(data)) {
+                events = data;
+                // Merge with localStorage (add any local-only events)
+                const localEvents = lsGetEvents();
+                const apiIds = new Set(events.map(e => e.id));
+                for (const le of localEvents) {
+                    if (!apiIds.has(le.id)) events.push(le);
+                }
+            } else {
+                // Fallback to localStorage
+                events = lsGetEvents();
             }
+            lsSaveEvents(events);
+            renderEvents();
         }
 
         function renderEvents() {
@@ -697,56 +729,56 @@
                 active: true,
             };
 
-            try {
-                const endpoint = editingId ? '/api/events/update' : '/api/events/create';
-                const res = await fetch(`${API}${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(ev),
-                });
-                if (res.ok) {
-                    showToast(editingId ? 'Evenement modifie' : 'Evenement ajoute');
-                    clearForm();
-                    loadEvents();
-                } else {
-                    showToast('Erreur serveur', true);
-                }
-            } catch (e) {
-                showToast('Impossible de contacter le serveur', true);
+            // Save to localStorage (always works)
+            const existing = lsGetEvents();
+            if (editingId) {
+                const idx = existing.findIndex(e => e.id === editingId);
+                if (idx >= 0) existing[idx] = ev;
+                else existing.push(ev);
+            } else {
+                existing.push(ev);
             }
+            lsSaveEvents(existing);
+
+            // Try API too (best effort)
+            const endpoint = editingId ? '/api/events/update' : '/api/events/create';
+            apiCall(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ev),
+            });
+
+            showToast(editingId ? 'Evenement modifie' : 'Evenement ajoute');
+            clearForm();
+            loadEvents();
         }
 
         async function toggleEvent(id) {
-            try {
-                const res = await fetch(`${API}/api/events/toggle`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id }),
-                });
-                if (res.ok) {
-                    showToast('Statut mis a jour');
-                    loadEvents();
-                }
-            } catch (e) {
-                showToast('Erreur', true);
+            const stored = lsGetEvents();
+            for (const ev of stored) {
+                if (ev.id === id) ev.active = !ev.active;
             }
+            lsSaveEvents(stored);
+            apiCall('/api/events/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
+            showToast('Statut mis a jour');
+            loadEvents();
         }
 
         async function deleteEvent(id) {
             if (!confirm('Supprimer cet evenement ?')) return;
-            try {
-                const res = await fetch(`${API}/api/events/remove`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id }),
-                });
-                if (res.ok) {
-                    showToast('Evenement supprime');
-                    loadEvents();
-                }
-            } catch (e) {
-                showToast('Erreur', true);
-            }
+            const stored = lsGetEvents().filter(e => e.id !== id);
+            lsSaveEvents(stored);
+            apiCall('/api/events/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
+            showToast('Evenement supprime');
+            loadEvents();
         }
 
         function editEvent(id) {
