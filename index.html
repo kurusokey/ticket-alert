@@ -2,75 +2,80 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket Alert — Surveillance Billetterie</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>Ticket Alert</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎫</text></svg>">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0a0a0f;
             color: #e0e0e0;
-            min-height: 100vh;
+            min-height: 100dvh;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
         .container {
-            max-width: 900px;
+            max-width: 600px;
             margin: 0 auto;
-            padding: 2rem 1.5rem;
+            padding: 1rem;
         }
 
+        /* ── Header ── */
         header {
             text-align: center;
-            margin-bottom: 2.5rem;
+            padding: 1.2rem 0 1rem;
         }
 
         header h1 {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: #fff;
-            margin-bottom: 0.3rem;
         }
 
         header h1 span { color: #f97316; }
-        header p { color: #888; font-size: 0.95rem; }
 
-        /* ── Monitor panel ── */
+        header p {
+            color: #666;
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+        }
+
+        /* ── Monitor Panel (hero) ── */
         .monitor-panel {
             background: #111118;
             border: 1px solid #1e1e2e;
-            border-radius: 12px;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 2rem;
+            border-radius: 16px;
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
         }
 
-        .monitor-panel.active { border-color: #22c55e33; }
-        .monitor-panel.has-alert { border-color: #f9731633; }
+        .monitor-panel.active {
+            border-color: #22c55e44;
+            box-shadow: 0 0 30px #22c55e0a;
+        }
 
-        .monitor-header {
+        .monitor-panel.has-alert {
+            border-color: #f9731666;
+            box-shadow: 0 0 30px #f973160f;
+        }
+
+        .monitor-status-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-
-        .monitor-title {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-
-        .monitor-title h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #fff;
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
         }
 
         .status-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #666;
+            background: #333;
             flex-shrink: 0;
         }
 
@@ -89,301 +94,359 @@
             50% { opacity: 0.3; }
         }
 
-        .monitor-controls {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .btn-start {
-            background: #22c55e;
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1.2rem;
+        .monitor-status-text {
             font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
+            color: #999;
+            flex: 1;
         }
 
-        .btn-start:hover { background: #4ade80; }
-
-        .btn-stop {
-            background: #ef4444;
+        .monitor-status-text strong {
             color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1.2rem;
-            font-size: 0.85rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .btn-stop:hover { background: #f87171; }
+        .telegram-badge {
+            font-size: 0.7rem;
+            color: #0ea5e9;
+            background: #0ea5e911;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        /* Big CTA button */
+        .btn-cta {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-cta.start {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #000;
+        }
+
+        .btn-cta.start:active { transform: scale(0.98); }
+
+        .btn-cta.stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+        }
+
+        .btn-cta.stop:active { transform: scale(0.98); }
 
         .monitor-stats {
             display: flex;
-            gap: 1.5rem;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
+            justify-content: space-around;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid #1a1a2a;
+            font-size: 0.78rem;
         }
 
-        .monitor-stat .label { color: #666; }
-        .monitor-stat .value { color: #ccc; font-weight: 500; }
+        .monitor-stat { text-align: center; }
+        .monitor-stat .val { color: #fff; font-weight: 600; font-size: 1rem; }
+        .monitor-stat .lbl { color: #555; margin-top: 0.1rem; }
 
-        .monitor-alerts {
-            margin-bottom: 1rem;
-        }
-
+        /* Alerts */
         .alert-item {
             background: #1a0f00;
             border: 1px solid #f9731644;
-            border-radius: 8px;
-            padding: 0.7rem 1rem;
-            margin-bottom: 0.5rem;
+            border-radius: 10px;
+            padding: 0.8rem;
+            margin-top: 0.6rem;
             font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
         }
 
-        .alert-item .alert-icon { font-size: 1.2rem; }
-        .alert-item .alert-text { color: #f97316; font-weight: 500; }
-        .alert-item .alert-time { color: #666; margin-left: auto; font-size: 0.8rem; }
-        .alert-item a { color: #f97316; }
+        .alert-item .alert-text { color: #f97316; font-weight: 600; }
+        .alert-item a { color: #fb923c; display: inline-block; margin-top: 0.3rem; word-break: break-all; }
 
+        /* Logs */
         .log-container {
-            background: #0a0a0f;
-            border: 1px solid #1a1a2a;
-            border-radius: 8px;
-            max-height: 200px;
+            background: #08080d;
+            border: 1px solid #141420;
+            border-radius: 10px;
+            max-height: 150px;
             overflow-y: auto;
+            margin-top: 0.6rem;
             font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 0.78rem;
-            line-height: 1.6;
+            font-size: 0.72rem;
+            line-height: 1.7;
+            -webkit-overflow-scrolling: touch;
         }
 
-        .log-container:empty::before {
-            content: "  Les logs apparaitront ici...";
-            color: #333;
-        }
+        .log-container:empty { display: none; }
 
         .log-line {
-            padding: 0.1rem 0.8rem;
-            border-bottom: 1px solid #0f0f1a;
+            padding: 0.15rem 0.6rem;
+            border-bottom: 1px solid #0e0e18;
         }
 
-        .log-line:hover { background: #111118; }
-        .log-line .log-time { color: #555; }
-        .log-line .log-msg { color: #888; }
+        .log-line .log-time { color: #444; }
+        .log-line .log-msg { color: #777; }
         .log-line.error .log-msg { color: #ef4444; }
         .log-line.alert .log-msg { color: #f97316; font-weight: 600; }
         .log-line.success .log-msg { color: #22c55e; }
 
-        .telegram-badge {
-            font-size: 0.8rem;
-            color: #0ea5e9;
-        }
-
-        /* ── Events ── */
-        .section-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #888;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .events-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .event-card {
-            background: #111118;
-            border: 1px solid #1e1e2e;
-            border-radius: 12px;
-            padding: 1.2rem 1.5rem;
-            transition: border-color 0.2s;
-        }
-
-        .event-card:hover { border-color: #333; }
-        .event-card.inactive { opacity: 0.5; }
-
-        .event-header {
+        /* ── Section title ── */
+        .section-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 0.8rem;
         }
 
-        .event-name {
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .event-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .event-actions button {
-            background: none;
-            border: 1px solid #333;
-            color: #aaa;
-            border-radius: 6px;
-            padding: 0.3rem 0.6rem;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-        }
-
-        .event-actions button:hover { border-color: #666; color: #fff; }
-        .event-actions .btn-delete:hover { border-color: #ef4444; color: #ef4444; }
-
-        .event-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 0.6rem;
-        }
-
-        .event-detail { font-size: 0.85rem; }
-        .event-detail .label { color: #666; margin-right: 0.3rem; }
-        .event-detail .value { color: #ccc; }
-        .event-detail .value a { color: #f97316; text-decoration: none; }
-        .event-detail .value a:hover { text-decoration: underline; }
-
-        .badge {
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
-            border-radius: 20px;
+        .section-title {
             font-size: 0.75rem;
             font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .badge-active { background: #052e16; color: #22c55e; }
-        .badge-paused { background: #1c1917; color: #a3a3a3; }
-
-        /* ── Form ── */
-        .add-section {
-            background: #111118;
-            border: 1px solid #1e1e2e;
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-
-        .add-section h2 {
-            font-size: 1.1rem;
+        .btn-add {
+            background: #f97316;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            color: #fff;
+            cursor: pointer;
+        }
+
+        .btn-add:active { transform: scale(0.96); }
+
+        /* ── Event Cards ── */
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
             margin-bottom: 1.2rem;
         }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+        .event-card {
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .event-card.inactive { opacity: 0.45; }
+
+        .event-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .event-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge {
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .badge-active { background: #052e16; color: #22c55e; }
+        .badge-paused { background: #1c1917; color: #666; }
+
+        .event-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.78rem;
+            color: #666;
+        }
+
+        .event-info span { white-space: nowrap; }
+        .event-info a { color: #f97316; text-decoration: none; }
+
+        .event-actions-row {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.6rem;
+        }
+
+        .event-actions-row button {
+            flex: 1;
+            background: #0a0a0f;
+            border: 1px solid #222;
+            color: #888;
+            border-radius: 8px;
+            padding: 0.5rem;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .event-actions-row button:active { background: #1a1a2a; color: #fff; }
+        .event-actions-row .btn-del:active { color: #ef4444; border-color: #ef4444; }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #444;
+            font-size: 0.9rem;
+        }
+
+        /* ── Form (modal overlay on mobile) ── */
+        .form-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: #0a0a0fee;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .form-overlay.open { display: block; }
+
+        .form-inner {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 1.5rem 1rem 3rem;
+        }
+
+        .form-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+        }
+
+        .form-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .btn-close {
+            background: none;
+            border: 1px solid #333;
+            color: #888;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-close:active { background: #222; }
+
+        .form-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 0.3rem;
+            gap: 0.25rem;
         }
 
-        .form-group.full { grid-column: 1 / -1; }
-
         .form-group label {
-            font-size: 0.8rem;
-            color: #888;
+            font-size: 0.78rem;
+            color: #777;
             font-weight: 500;
         }
 
         .form-group input {
-            background: #0a0a0f;
+            background: #111118;
             border: 1px solid #2a2a3a;
-            border-radius: 8px;
-            padding: 0.6rem 0.8rem;
+            border-radius: 10px;
+            padding: 0.75rem 0.9rem;
             color: #e0e0e0;
-            font-size: 0.9rem;
+            font-size: 1rem;
             outline: none;
             transition: border-color 0.2s;
+            -webkit-appearance: none;
         }
 
         .form-group input:focus { border-color: #f97316; }
-        .form-group input::placeholder { color: #444; }
-        .form-group .hint { font-size: 0.75rem; color: #555; }
+        .form-group input::placeholder { color: #3a3a4a; }
+        .form-group .hint { font-size: 0.7rem; color: #444; }
 
-        .form-actions {
-            margin-top: 1.2rem;
-            display: flex;
-            gap: 0.8rem;
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.9rem;
         }
 
-        .btn-primary {
+        .btn-submit {
+            display: block;
+            width: 100%;
+            margin-top: 0.5rem;
+            padding: 1rem;
             background: #f97316;
             color: #000;
             border: none;
-            border-radius: 8px;
-            padding: 0.7rem 1.5rem;
-            font-size: 0.9rem;
-            font-weight: 600;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .btn-primary:hover { background: #fb923c; }
+        .btn-submit:active { transform: scale(0.98); }
 
-        .btn-secondary {
-            background: none;
-            color: #888;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 0.7rem 1.5rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary:hover { border-color: #666; color: #ccc; }
-
+        /* ── Toast ── */
         .toast {
             position: fixed;
-            bottom: 2rem;
-            right: 2rem;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
             background: #1a1a2e;
             border: 1px solid #333;
-            border-radius: 10px;
-            padding: 0.8rem 1.2rem;
-            font-size: 0.9rem;
+            border-radius: 12px;
+            padding: 0.7rem 1.2rem;
+            font-size: 0.85rem;
             color: #22c55e;
-            transform: translateY(100px);
             opacity: 0;
             transition: all 0.3s;
             z-index: 100;
+            white-space: nowrap;
+            max-width: 90vw;
+            text-align: center;
         }
 
-        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .toast.error { color: #ef4444; }
 
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: #555;
-        }
-
-        .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
-
-        @media (max-width: 600px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .event-details { grid-template-columns: 1fr; }
-            .monitor-stats { flex-wrap: wrap; gap: 0.8rem; }
+        /* ── Desktop tweaks ── */
+        @media (min-width: 640px) {
+            .container { padding: 2rem 1.5rem; }
+            header h1 { font-size: 1.8rem; }
+            .btn-cta { max-width: 300px; margin: 0 auto; }
+            .event-card { padding: 1.2rem 1.5rem; }
         }
     </style>
 </head>
@@ -391,81 +454,83 @@
     <div class="container">
         <header>
             <h1>Ticket <span>Alert</span></h1>
-            <p>Surveillance automatique de billetterie — Notification Telegram</p>
+            <p>Surveillance billetterie + Telegram</p>
         </header>
 
-        <!-- ── Monitor panel ── -->
+        <!-- ── Monitor ── -->
         <div class="monitor-panel" id="monitorPanel">
-            <div class="monitor-header">
-                <div class="monitor-title">
-                    <div class="status-dot" id="monitorDot"></div>
-                    <h2 id="monitorTitle">Surveillance inactive</h2>
-                </div>
-                <div class="monitor-controls">
-                    <span class="telegram-badge">Telegram actif</span>
-                    <button class="btn-start" id="btnStart" onclick="startMonitor()">Lancer la surveillance</button>
-                    <button class="btn-stop" id="btnStop" onclick="stopMonitor()" style="display:none">Arreter</button>
-                </div>
+            <div class="monitor-status-row">
+                <div class="status-dot" id="monitorDot"></div>
+                <div class="monitor-status-text" id="monitorTitle"><strong>Surveillance inactive</strong></div>
+                <span class="telegram-badge">Telegram</span>
             </div>
+
+            <button class="btn-cta start" id="btnStart" onclick="startMonitor()">Lancer la surveillance</button>
+            <button class="btn-cta stop" id="btnStop" onclick="stopMonitor()" style="display:none">Arreter la surveillance</button>
 
             <div class="monitor-stats" id="monitorStats" style="display:none">
                 <div class="monitor-stat">
-                    <span class="label">Checks : </span>
-                    <span class="value" id="statChecks">0</span>
+                    <div class="val" id="statChecks">0</div>
+                    <div class="lbl">Checks</div>
                 </div>
                 <div class="monitor-stat">
-                    <span class="label">Demarre a : </span>
-                    <span class="value" id="statStarted">—</span>
+                    <div class="val" id="statStarted">--:--</div>
+                    <div class="lbl">Demarre</div>
                 </div>
                 <div class="monitor-stat">
-                    <span class="label">Intervalle : </span>
-                    <span class="value">5s</span>
+                    <div class="val">10s</div>
+                    <div class="lbl">Intervalle</div>
                 </div>
             </div>
 
-            <div class="monitor-alerts" id="monitorAlerts"></div>
-
+            <div id="monitorAlerts"></div>
             <div class="log-container" id="logContainer"></div>
         </div>
 
-        <!-- ── Events list ── -->
-        <div class="section-title">Evenements surveilles</div>
+        <!-- ── Events ── -->
+        <div class="section-header">
+            <span class="section-title">Evenements</span>
+            <button class="btn-add" onclick="openForm()">+ Ajouter</button>
+        </div>
         <div class="events-list" id="eventsList"></div>
+    </div>
 
-        <!-- ── Add form ── -->
-        <div class="add-section">
-            <h2 id="formTitle">+ Ajouter un evenement</h2>
-            <div class="form-grid">
+    <!-- ── Form overlay ── -->
+    <div class="form-overlay" id="formOverlay">
+        <div class="form-inner">
+            <div class="form-header">
+                <h2 id="formTitle">Ajouter un evenement</h2>
+                <button class="btn-close" onclick="closeForm()">&times;</button>
+            </div>
+            <div class="form-stack">
                 <div class="form-group">
-                    <label for="eventName">Nom de l'evenement</label>
+                    <label>Nom</label>
                     <input type="text" id="eventName" placeholder="Ex: Joe Dwet File">
                 </div>
                 <div class="form-group">
-                    <label for="eventVenue">Lieu</label>
+                    <label>Lieu</label>
                     <input type="text" id="eventVenue" placeholder="Ex: Paris La Defense Arena">
                 </div>
-                <div class="form-group">
-                    <label for="eventDate">Date de l'evenement</label>
-                    <input type="date" id="eventDate">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date concert</label>
+                        <input type="date" id="eventDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Ouverture vente</label>
+                        <input type="datetime-local" id="eventSaleDate">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="eventSaleDate">Ouverture billetterie</label>
-                    <input type="datetime-local" id="eventSaleDate">
-                    <span class="hint">Date et heure d'ouverture de la vente</span>
-                </div>
-                <div class="form-group full">
-                    <label for="eventUrl">URL de la page evenement</label>
+                    <label>URL de la page</label>
                     <input type="url" id="eventUrl" placeholder="https://...">
                 </div>
-                <div class="form-group full">
-                    <label for="eventMarker">Texte de fermeture (optionnel)</label>
-                    <input type="text" id="eventMarker" placeholder="Ex: ouverture imminente, prochainement, bientot...">
-                    <span class="hint">Texte sur la page qui indique que la vente n'est pas encore ouverte</span>
+                <div class="form-group">
+                    <label>Texte de fermeture</label>
+                    <input type="text" id="eventMarker" placeholder="Ex: ouverture imminente">
+                    <span class="hint">Texte visible sur la page quand la vente n'est pas ouverte</span>
                 </div>
-            </div>
-            <div class="form-actions">
-                <button class="btn-primary" id="btnSave" onclick="saveEvent()">Ajouter</button>
-                <button class="btn-secondary" id="btnCancel" onclick="cancelEdit()" style="display:none">Annuler</button>
+                <button class="btn-submit" id="btnSave" onclick="saveEvent()">Ajouter</button>
             </div>
         </div>
     </div>
@@ -513,44 +578,33 @@
 
         async function pollMonitorStatus() {
             try {
-                // Appelle /check qui fait le vrai scraping sur Vercel
-                // (en local, le thread fait le scraping, /check retourne juste le status)
                 const res = await fetch(`${API}/api/monitor/check`);
                 const data = await res.json();
                 if (data.status) {
                     updateMonitorUI(data.status);
-                    if (!data.status.running && pollInterval) {
-                        stopPolling();
-                    }
+                    if (!data.status.running && pollInterval) stopPolling();
                 } else if (data.skipped) {
-                    // Monitor stopped externally
-                    const statusRes = await fetch(`${API}/api/monitor/status`);
-                    const statusData = await statusRes.json();
-                    updateMonitorUI(statusData);
-                    if (!statusData.running) stopPolling();
+                    const r2 = await fetch(`${API}/api/monitor/status`);
+                    const d2 = await r2.json();
+                    updateMonitorUI(d2);
+                    if (!d2.running) stopPolling();
                 }
             } catch (e) {
-                // Fallback to simple status
                 try {
                     const res = await fetch(`${API}/api/monitor/status`);
-                    const data = await res.json();
-                    updateMonitorUI(data);
+                    updateMonitorUI(await res.json());
                 } catch {}
             }
         }
 
         function startPolling() {
             if (pollInterval) clearInterval(pollInterval);
-            // Poll toutes les 10s (chaque appel fait un vrai check sur Vercel)
             pollInterval = setInterval(pollMonitorStatus, 10000);
             pollMonitorStatus();
         }
 
         function stopPolling() {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
+            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
         }
 
         function updateMonitorUI(data) {
@@ -562,62 +616,57 @@
             const stats = document.getElementById('monitorStats');
 
             if (data.running) {
-                panel.className = 'monitor-panel active' + (data.alerts?.length ? ' has-alert' : '');
-                dot.className = 'status-dot' + (data.alerts?.length ? ' alert' : ' running');
-                title.textContent = data.alerts?.length
-                    ? `ALERTE — ${data.alerts.length} billetterie(s) ouverte(s) !`
-                    : 'Surveillance en cours...';
+                const hasAlert = data.alerts?.length > 0;
+                panel.className = 'monitor-panel' + (hasAlert ? ' has-alert' : ' active');
+                dot.className = 'status-dot' + (hasAlert ? ' alert' : ' running');
+                title.innerHTML = hasAlert
+                    ? '<strong style="color:#f97316">BILLETTERIE OUVERTE !</strong>'
+                    : '<strong>Surveillance active</strong> &mdash; check toutes les 10s';
                 btnStart.style.display = 'none';
                 btnStop.style.display = '';
                 stats.style.display = '';
                 document.getElementById('statChecks').textContent = data.check_count || 0;
-                document.getElementById('statStarted').textContent = data.started_at || '—';
+                document.getElementById('statStarted').textContent = data.started_at || '--:--';
             } else {
                 panel.className = 'monitor-panel';
                 dot.className = 'status-dot';
-                title.textContent = 'Surveillance inactive';
+                title.innerHTML = '<strong>Surveillance inactive</strong>';
                 btnStart.style.display = '';
                 btnStop.style.display = 'none';
                 stats.style.display = 'none';
             }
 
             // Alerts
-            const alertsContainer = document.getElementById('monitorAlerts');
+            const ac = document.getElementById('monitorAlerts');
             if (data.alerts?.length) {
-                alertsContainer.innerHTML = data.alerts.map(a => `
+                ac.innerHTML = data.alerts.map(a => `
                     <div class="alert-item">
-                        <span class="alert-icon">🚨</span>
-                        <span class="alert-text">
-                            ${esc(a.event)} — BILLETTERIE OUVERTE
-                            ${a.url ? `<a href="${esc(a.url)}" target="_blank">Ouvrir</a>` : ''}
-                        </span>
-                        <span class="alert-time">${a.time}</span>
+                        <div class="alert-text">🚨 ${esc(a.event)} — BILLETTERIE OUVERTE</div>
+                        ${a.url ? `<a href="${esc(a.url)}" target="_blank">Ouvrir le site</a>` : ''}
                     </div>
                 `).join('');
             } else {
-                alertsContainer.innerHTML = '';
+                ac.innerHTML = '';
             }
 
             // Logs
-            const logContainer = document.getElementById('logContainer');
+            const lc = document.getElementById('logContainer');
             if (data.logs?.length) {
-                const wasAtBottom = logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 30;
-                logContainer.innerHTML = data.logs.map(l => `
+                const atBottom = lc.scrollTop + lc.clientHeight >= lc.scrollHeight - 20;
+                lc.innerHTML = data.logs.map(l => `
                     <div class="log-line ${l.level || ''}">
                         <span class="log-time">${l.time}</span>
                         <span class="log-msg"> ${esc(l.message)}</span>
                     </div>
                 `).join('');
-                if (wasAtBottom) {
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                }
+                if (atBottom) lc.scrollTop = lc.scrollHeight;
             } else if (!data.running) {
-                logContainer.innerHTML = '';
+                lc.innerHTML = '';
             }
         }
 
         // ══════════════════════════════════════
-        // STORAGE (API + localStorage fallback)
+        // STORAGE
         // ══════════════════════════════════════
 
         const LS_KEY = 'ticket_alert_events';
@@ -644,18 +693,15 @@
         // ══════════════════════════════════════
 
         async function loadEvents() {
-            // Try API first
             const data = await apiCall('/api/events');
             if (data && Array.isArray(data)) {
                 events = data;
-                // Merge with localStorage (add any local-only events)
                 const localEvents = lsGetEvents();
                 const apiIds = new Set(events.map(e => e.id));
                 for (const le of localEvents) {
                     if (!apiIds.has(le.id)) events.push(le);
                 }
             } else {
-                // Fallback to localStorage
                 events = lsGetEvents();
             }
             lsSaveEvents(events);
@@ -665,135 +711,55 @@
         function renderEvents() {
             const list = document.getElementById('eventsList');
             if (events.length === 0) {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon">📭</div>
-                        <p>Aucun evenement surveille</p>
-                    </div>`;
+                list.innerHTML = '<div class="empty-state">Aucun evenement surveille</div>';
                 return;
             }
 
             list.innerHTML = events.map(ev => {
-                const badgeClass = ev.active ? 'badge-active' : 'badge-paused';
-                const badgeText = ev.active ? 'Actif' : 'Pause';
-                const cardClass = ev.active ? '' : 'inactive';
-                const saleDate = ev.sale_date ? formatDate(ev.sale_date) : '—';
-                const eventDate = ev.date ? formatDate(ev.date) : '—';
-                let urlShort = '—';
-                try { urlShort = new URL(ev.url).hostname; } catch {}
+                const bc = ev.active ? 'badge-active' : 'badge-paused';
+                const bt = ev.active ? 'Actif' : 'Pause';
+                const cc = ev.active ? '' : 'inactive';
+                const sd = ev.sale_date ? fmtDate(ev.sale_date) : '';
+                const ed = ev.date ? fmtDate(ev.date) : '';
+                let host = '';
+                try { host = new URL(ev.url).hostname.replace('www.',''); } catch {}
 
                 return `
-                    <div class="event-card ${cardClass}">
-                        <div class="event-header">
+                    <div class="event-card ${cc}">
+                        <div class="event-top">
                             <span class="event-name">${esc(ev.name)}</span>
-                            <div class="event-actions">
-                                <span class="badge ${badgeClass}">${badgeText}</span>
-                                <button onclick="toggleEvent('${ev.id}')">${ev.active ? 'Pause' : 'Activer'}</button>
-                                <button onclick="editEvent('${ev.id}')">Modifier</button>
-                                <button class="btn-delete" onclick="deleteEvent('${ev.id}')">Supprimer</button>
-                            </div>
+                            <span class="badge ${bc}">${bt}</span>
                         </div>
-                        <div class="event-details">
-                            <div class="event-detail">
-                                <span class="label">Lieu</span>
-                                <span class="value">${esc(ev.venue || '—')}</span>
-                            </div>
-                            <div class="event-detail">
-                                <span class="label">Concert</span>
-                                <span class="value">${eventDate}</span>
-                            </div>
-                            <div class="event-detail">
-                                <span class="label">Ouverture vente</span>
-                                <span class="value">${saleDate}</span>
-                            </div>
-                            <div class="event-detail">
-                                <span class="label">Page</span>
-                                <span class="value"><a href="${esc(ev.url)}" target="_blank">${esc(urlShort)}</a></span>
-                            </div>
-                            ${ev.closed_marker ? `
-                            <div class="event-detail">
-                                <span class="label">Marqueur</span>
-                                <span class="value">"${esc(ev.closed_marker)}"</span>
-                            </div>` : ''}
+                        <div class="event-info">
+                            ${ev.venue ? `<span>${esc(ev.venue)}</span>` : ''}
+                            ${ed ? `<span>${ed}</span>` : ''}
+                            ${sd ? `<span>Vente: ${sd}</span>` : ''}
+                            ${host ? `<span><a href="${esc(ev.url)}" target="_blank">${esc(host)}</a></span>` : ''}
+                        </div>
+                        <div class="event-actions-row">
+                            <button onclick="toggleEvent('${ev.id}')">${ev.active ? 'Pause' : 'Activer'}</button>
+                            <button onclick="editEvent('${ev.id}')">Modifier</button>
+                            <button class="btn-del" onclick="deleteEvent('${ev.id}')">Supprimer</button>
                         </div>
                     </div>`;
             }).join('');
         }
 
-        async function saveEvent() {
-            const name = document.getElementById('eventName').value.trim();
-            const venue = document.getElementById('eventVenue').value.trim();
-            const date = document.getElementById('eventDate').value;
-            const saleDate = document.getElementById('eventSaleDate').value;
-            const url = document.getElementById('eventUrl').value.trim();
-            const marker = document.getElementById('eventMarker').value.trim();
+        // ══════════════════════════════════════
+        // FORM
+        // ══════════════════════════════════════
 
-            if (!name || !url) {
-                showToast('Nom et URL sont obligatoires', true);
-                return;
-            }
-
-            const ev = {
-                id: editingId || slugify(name) + '-' + Date.now().toString(36),
-                name,
-                venue,
-                date: date || null,
-                sale_date: saleDate ? saleDate.replace('T', ' ') : null,
-                url,
-                closed_marker: marker || null,
-                active: true,
-            };
-
-            // Save to localStorage (always works)
-            const existing = lsGetEvents();
-            if (editingId) {
-                const idx = existing.findIndex(e => e.id === editingId);
-                if (idx >= 0) existing[idx] = ev;
-                else existing.push(ev);
-            } else {
-                existing.push(ev);
-            }
-            lsSaveEvents(existing);
-
-            // Try API too (best effort)
-            const endpoint = editingId ? '/api/events/update' : '/api/events/create';
-            apiCall(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(ev),
-            });
-
-            showToast(editingId ? 'Evenement modifie' : 'Evenement ajoute');
-            clearForm();
-            loadEvents();
+        function openForm() {
+            editingId = null;
+            clearFormFields();
+            document.getElementById('formTitle').textContent = 'Ajouter un evenement';
+            document.getElementById('btnSave').textContent = 'Ajouter';
+            document.getElementById('formOverlay').classList.add('open');
         }
 
-        async function toggleEvent(id) {
-            const stored = lsGetEvents();
-            for (const ev of stored) {
-                if (ev.id === id) ev.active = !ev.active;
-            }
-            lsSaveEvents(stored);
-            apiCall('/api/events/toggle', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id }),
-            });
-            showToast('Statut mis a jour');
-            loadEvents();
-        }
-
-        async function deleteEvent(id) {
-            if (!confirm('Supprimer cet evenement ?')) return;
-            const stored = lsGetEvents().filter(e => e.id !== id);
-            lsSaveEvents(stored);
-            apiCall('/api/events/remove', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id }),
-            });
-            showToast('Evenement supprime');
-            loadEvents();
+        function closeForm() {
+            document.getElementById('formOverlay').classList.remove('open');
+            editingId = null;
         }
 
         function editEvent(id) {
@@ -806,60 +772,110 @@
             document.getElementById('eventSaleDate').value = (ev.sale_date || '').replace(' ', 'T');
             document.getElementById('eventUrl').value = ev.url || '';
             document.getElementById('eventMarker').value = ev.closed_marker || '';
-            document.getElementById('formTitle').textContent = 'Modifier l\'evenement';
+            document.getElementById('formTitle').textContent = 'Modifier';
             document.getElementById('btnSave').textContent = 'Enregistrer';
-            document.getElementById('btnCancel').style.display = '';
-            document.querySelector('.add-section').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('formOverlay').classList.add('open');
         }
 
-        function cancelEdit() { clearForm(); }
+        async function saveEvent() {
+            const name = document.getElementById('eventName').value.trim();
+            const url = document.getElementById('eventUrl').value.trim();
+            if (!name || !url) { showToast('Nom et URL requis', true); return; }
 
-        function clearForm() {
-            editingId = null;
-            document.getElementById('eventName').value = '';
-            document.getElementById('eventVenue').value = '';
-            document.getElementById('eventDate').value = '';
-            document.getElementById('eventSaleDate').value = '';
-            document.getElementById('eventUrl').value = '';
-            document.getElementById('eventMarker').value = '';
-            document.getElementById('formTitle').textContent = '+ Ajouter un evenement';
-            document.getElementById('btnSave').textContent = 'Ajouter';
-            document.getElementById('btnCancel').style.display = 'none';
+            const ev = {
+                id: editingId || slugify(name) + '-' + Date.now().toString(36),
+                name,
+                venue: document.getElementById('eventVenue').value.trim(),
+                date: document.getElementById('eventDate').value || null,
+                sale_date: document.getElementById('eventSaleDate').value ? document.getElementById('eventSaleDate').value.replace('T', ' ') : null,
+                url,
+                closed_marker: document.getElementById('eventMarker').value.trim() || null,
+                active: true,
+            };
+
+            const stored = lsGetEvents();
+            if (editingId) {
+                const idx = stored.findIndex(e => e.id === editingId);
+                if (idx >= 0) stored[idx] = ev; else stored.push(ev);
+            } else {
+                stored.push(ev);
+            }
+            lsSaveEvents(stored);
+
+            const endpoint = editingId ? '/api/events/update' : '/api/events/create';
+            apiCall(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ev),
+            });
+
+            showToast(editingId ? 'Modifie' : 'Ajoute');
+            closeForm();
+            loadEvents();
+        }
+
+        async function toggleEvent(id) {
+            const stored = lsGetEvents();
+            for (const ev of stored) { if (ev.id === id) ev.active = !ev.active; }
+            lsSaveEvents(stored);
+            apiCall('/api/events/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
+            showToast('Mis a jour');
+            loadEvents();
+        }
+
+        async function deleteEvent(id) {
+            if (!confirm('Supprimer ?')) return;
+            lsSaveEvents(lsGetEvents().filter(e => e.id !== id));
+            apiCall('/api/events/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
+            showToast('Supprime');
+            loadEvents();
+        }
+
+        function clearFormFields() {
+            ['eventName','eventVenue','eventDate','eventSaleDate','eventUrl','eventMarker']
+                .forEach(id => document.getElementById(id).value = '');
         }
 
         // ══════════════════════════════════════
         // HELPERS
         // ══════════════════════════════════════
 
-        function slugify(text) {
-            return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        function slugify(t) {
+            return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                .replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
         }
 
-        function esc(str) {
-            if (!str) return '';
+        function esc(s) {
+            if (!s) return '';
             const d = document.createElement('div');
-            d.textContent = str;
+            d.textContent = s;
             return d.innerHTML;
         }
 
-        function formatDate(str) {
-            if (!str) return '—';
+        function fmtDate(s) {
+            if (!s) return '';
             try {
-                const d = new Date(str.replace(' ', 'T'));
-                return d.toLocaleDateString('fr-FR', {
-                    day: 'numeric', month: 'long', year: 'numeric',
-                    hour: str.includes(':') ? '2-digit' : undefined,
-                    minute: str.includes(':') ? '2-digit' : undefined,
+                return new Date(s.replace(' ','T')).toLocaleDateString('fr-FR', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                    hour: s.includes(':') ? '2-digit' : undefined,
+                    minute: s.includes(':') ? '2-digit' : undefined,
                 });
-            } catch { return str; }
+            } catch { return s; }
         }
 
         function showToast(msg, error = false) {
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.className = 'toast show' + (error ? ' error' : '');
-            setTimeout(() => t.className = 'toast', 2500);
+            setTimeout(() => t.className = 'toast', 2000);
         }
 
         // ══════════════════════════════════════
@@ -868,7 +884,6 @@
 
         loadEvents();
 
-        // Check if monitor is already running on page load
         (async () => {
             try {
                 const res = await fetch(`${API}/api/monitor/status`);
