@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Alert — Surveillance Billetterie</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        header h1 span { color: #f97316; }
+        header p { color: #888; font-size: 0.95rem; }
+
+        /* ── Monitor panel ── */
+        .monitor-panel {
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .monitor-panel.active { border-color: #22c55e33; }
+        .monitor-panel.has-alert { border-color: #f9731633; }
+
+        .monitor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .monitor-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .monitor-title h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #666;
+            flex-shrink: 0;
+        }
+
+        .status-dot.running {
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.alert {
+            background: #f97316;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .monitor-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn-start {
+            background: #22c55e;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-start:hover { background: #4ade80; }
+
+        .btn-stop {
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-stop:hover { background: #f87171; }
+
+        .monitor-stats {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .monitor-stat .label { color: #666; }
+        .monitor-stat .value { color: #ccc; font-weight: 500; }
+
+        .monitor-alerts {
+            margin-bottom: 1rem;
+        }
+
+        .alert-item {
+            background: #1a0f00;
+            border: 1px solid #f9731644;
+            border-radius: 8px;
+            padding: 0.7rem 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .alert-item .alert-icon { font-size: 1.2rem; }
+        .alert-item .alert-text { color: #f97316; font-weight: 500; }
+        .alert-item .alert-time { color: #666; margin-left: auto; font-size: 0.8rem; }
+        .alert-item a { color: #f97316; }
+
+        .log-container {
+            background: #0a0a0f;
+            border: 1px solid #1a1a2a;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.78rem;
+            line-height: 1.6;
+        }
+
+        .log-container:empty::before {
+            content: "  Les logs apparaitront ici...";
+            color: #333;
+        }
+
+        .log-line {
+            padding: 0.1rem 0.8rem;
+            border-bottom: 1px solid #0f0f1a;
+        }
+
+        .log-line:hover { background: #111118; }
+        .log-line .log-time { color: #555; }
+        .log-line .log-msg { color: #888; }
+        .log-line.error .log-msg { color: #ef4444; }
+        .log-line.alert .log-msg { color: #f97316; font-weight: 600; }
+        .log-line.success .log-msg { color: #22c55e; }
+
+        .telegram-badge {
+            font-size: 0.8rem;
+            color: #0ea5e9;
+        }
+
+        /* ── Events ── */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .event-card {
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .event-card:hover { border-color: #333; }
+        .event-card.inactive { opacity: 0.5; }
+
+        .event-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+        }
+
+        .event-name {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .event-actions button {
+            background: none;
+            border: 1px solid #333;
+            color: #aaa;
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .event-actions button:hover { border-color: #666; color: #fff; }
+        .event-actions .btn-delete:hover { border-color: #ef4444; color: #ef4444; }
+
+        .event-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.6rem;
+        }
+
+        .event-detail { font-size: 0.85rem; }
+        .event-detail .label { color: #666; margin-right: 0.3rem; }
+        .event-detail .value { color: #ccc; }
+        .event-detail .value a { color: #f97316; text-decoration: none; }
+        .event-detail .value a:hover { text-decoration: underline; }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-active { background: #052e16; color: #22c55e; }
+        .badge-paused { background: #1c1917; color: #a3a3a3; }
+
+        /* ── Form ── */
+        .add-section {
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .add-section h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1.2rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .form-group.full { grid-column: 1 / -1; }
+
+        .form-group label {
+            font-size: 0.8rem;
+            color: #888;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            background: #0a0a0f;
+            border: 1px solid #2a2a3a;
+            border-radius: 8px;
+            padding: 0.6rem 0.8rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus { border-color: #f97316; }
+        .form-group input::placeholder { color: #444; }
+        .form-group .hint { font-size: 0.75rem; color: #555; }
+
+        .form-actions {
+            margin-top: 1.2rem;
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .btn-primary {
+            background: #f97316;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover { background: #fb923c; }
+
+        .btn-secondary {
+            background: none;
+            color: #888;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover { border-color: #666; color: #ccc; }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 0.8rem 1.2rem;
+            font-size: 0.9rem;
+            color: #22c55e;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { color: #ef4444; }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #555;
+        }
+
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .event-details { grid-template-columns: 1fr; }
+            .monitor-stats { flex-wrap: wrap; gap: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ticket <span>Alert</span></h1>
+            <p>Surveillance automatique de billetterie — Notification Telegram</p>
+        </header>
+
+        <!-- ── Monitor panel ── -->
+        <div class="monitor-panel" id="monitorPanel">
+            <div class="monitor-header">
+                <div class="monitor-title">
+                    <div class="status-dot" id="monitorDot"></div>
+                    <h2 id="monitorTitle">Surveillance inactive</h2>
+                </div>
+                <div class="monitor-controls">
+                    <span class="telegram-badge">Telegram actif</span>
+                    <button class="btn-start" id="btnStart" onclick="startMonitor()">Lancer la surveillance</button>
+                    <button class="btn-stop" id="btnStop" onclick="stopMonitor()" style="display:none">Arreter</button>
+                </div>
+            </div>
+
+            <div class="monitor-stats" id="monitorStats" style="display:none">
+                <div class="monitor-stat">
+                    <span class="label">Checks : </span>
+                    <span class="value" id="statChecks">0</span>
+                </div>
+                <div class="monitor-stat">
+                    <span class="label">Demarre a : </span>
+                    <span class="value" id="statStarted">—</span>
+                </div>
+                <div class="monitor-stat">
+                    <span class="label">Intervalle : </span>
+                    <span class="value">5s</span>
+                </div>
+            </div>
+
+            <div class="monitor-alerts" id="monitorAlerts"></div>
+
+            <div class="log-container" id="logContainer"></div>
+        </div>
+
+        <!-- ── Events list ── -->
+        <div class="section-title">Evenements surveilles</div>
+        <div class="events-list" id="eventsList"></div>
+
+        <!-- ── Add form ── -->
+        <div class="add-section">
+            <h2 id="formTitle">+ Ajouter un evenement</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="eventName">Nom de l'evenement</label>
+                    <input type="text" id="eventName" placeholder="Ex: Joe Dwet File">
+                </div>
+                <div class="form-group">
+                    <label for="eventVenue">Lieu</label>
+                    <input type="text" id="eventVenue" placeholder="Ex: Paris La Defense Arena">
+                </div>
+                <div class="form-group">
+                    <label for="eventDate">Date de l'evenement</label>
+                    <input type="date" id="eventDate">
+                </div>
+                <div class="form-group">
+                    <label for="eventSaleDate">Ouverture billetterie</label>
+                    <input type="datetime-local" id="eventSaleDate">
+                    <span class="hint">Date et heure d'ouverture de la vente</span>
+                </div>
+                <div class="form-group full">
+                    <label for="eventUrl">URL de la page evenement</label>
+                    <input type="url" id="eventUrl" placeholder="https://...">
+                </div>
+                <div class="form-group full">
+                    <label for="eventMarker">Texte de fermeture (optionnel)</label>
+                    <input type="text" id="eventMarker" placeholder="Ex: ouverture imminente, prochainement, bientot...">
+                    <span class="hint">Texte sur la page qui indique que la vente n'est pas encore ouverte</span>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn-primary" id="btnSave" onclick="saveEvent()">Ajouter</button>
+                <button class="btn-secondary" id="btnCancel" onclick="cancelEdit()" style="display:none">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API = '';
+        let events = [];
+        let editingId = null;
+        let pollInterval = null;
+
+        // ══════════════════════════════════════
+        // MONITOR
+        // ══════════════════════════════════════
+
+        async function startMonitor() {
+            try {
+                const res = await fetch(`${API}/api/monitor/start`, { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast('Surveillance lancee');
+                    startPolling();
+                } else {
+                    showToast(data.message || 'Deja en cours', true);
+                }
+            } catch (e) {
+                showToast('Erreur serveur', true);
+            }
+        }
+
+        async function stopMonitor() {
+            try {
+                const res = await fetch(`${API}/api/monitor/stop`, { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast('Surveillance arretee');
+                    stopPolling();
+                    updateMonitorUI({ running: false, check_count: 0, logs: [], alerts: [] });
+                }
+            } catch (e) {
+                showToast('Erreur', true);
+            }
+        }
+
+        async function pollMonitorStatus() {
+            try {
+                const res = await fetch(`${API}/api/monitor/status`);
+                const data = await res.json();
+                updateMonitorUI(data);
+
+                if (!data.running && pollInterval) {
+                    stopPolling();
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(pollMonitorStatus, 2000);
+            pollMonitorStatus();
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        function updateMonitorUI(data) {
+            const panel = document.getElementById('monitorPanel');
+            const dot = document.getElementById('monitorDot');
+            const title = document.getElementById('monitorTitle');
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+            const stats = document.getElementById('monitorStats');
+
+            if (data.running) {
+                panel.className = 'monitor-panel active' + (data.alerts?.length ? ' has-alert' : '');
+                dot.className = 'status-dot' + (data.alerts?.length ? ' alert' : ' running');
+                title.textContent = data.alerts?.length
+                    ? `ALERTE — ${data.alerts.length} billetterie(s) ouverte(s) !`
+                    : 'Surveillance en cours...';
+                btnStart.style.display = 'none';
+                btnStop.style.display = '';
+                stats.style.display = '';
+                document.getElementById('statChecks').textContent = data.check_count || 0;
+                document.getElementById('statStarted').textContent = data.started_at || '—';
+            } else {
+                panel.className = 'monitor-panel';
+                dot.className = 'status-dot';
+                title.textContent = 'Surveillance inactive';
+                btnStart.style.display = '';
+                btnStop.style.display = 'none';
+                stats.style.display = 'none';
+            }
+
+            // Alerts
+            const alertsContainer = document.getElementById('monitorAlerts');
+            if (data.alerts?.length) {
+                alertsContainer.innerHTML = data.alerts.map(a => `
+                    <div class="alert-item">
+                        <span class="alert-icon">🚨</span>
+                        <span class="alert-text">
+                            ${esc(a.event)} — BILLETTERIE OUVERTE
+                            ${a.url ? `<a href="${esc(a.url)}" target="_blank">Ouvrir</a>` : ''}
+                        </span>
+                        <span class="alert-time">${a.time}</span>
+                    </div>
+                `).join('');
+            } else {
+                alertsContainer.innerHTML = '';
+            }
+
+            // Logs
+            const logContainer = document.getElementById('logContainer');
+            if (data.logs?.length) {
+                const wasAtBottom = logContainer.scrollTop + logContainer.clientHeight >= logContainer.scrollHeight - 30;
+                logContainer.innerHTML = data.logs.map(l => `
+                    <div class="log-line ${l.level || ''}">
+                        <span class="log-time">${l.time}</span>
+                        <span class="log-msg"> ${esc(l.message)}</span>
+                    </div>
+                `).join('');
+                if (wasAtBottom) {
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            } else if (!data.running) {
+                logContainer.innerHTML = '';
+            }
+        }
+
+        // ══════════════════════════════════════
+        // EVENTS
+        // ══════════════════════════════════════
+
+        async function loadEvents() {
+            try {
+                const res = await fetch(`${API}/api/events`);
+                events = await res.json();
+                renderEvents();
+            } catch (e) {
+                showToast('Impossible de contacter le serveur', true);
+            }
+        }
+
+        function renderEvents() {
+            const list = document.getElementById('eventsList');
+            if (events.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>Aucun evenement surveille</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = events.map(ev => {
+                const badgeClass = ev.active ? 'badge-active' : 'badge-paused';
+                const badgeText = ev.active ? 'Actif' : 'Pause';
+                const cardClass = ev.active ? '' : 'inactive';
+                const saleDate = ev.sale_date ? formatDate(ev.sale_date) : '—';
+                const eventDate = ev.date ? formatDate(ev.date) : '—';
+                let urlShort = '—';
+                try { urlShort = new URL(ev.url).hostname; } catch {}
+
+                return `
+                    <div class="event-card ${cardClass}">
+                        <div class="event-header">
+                            <span class="event-name">${esc(ev.name)}</span>
+                            <div class="event-actions">
+                                <span class="badge ${badgeClass}">${badgeText}</span>
+                                <button onclick="toggleEvent('${ev.id}')">${ev.active ? 'Pause' : 'Activer'}</button>
+                                <button onclick="editEvent('${ev.id}')">Modifier</button>
+                                <button class="btn-delete" onclick="deleteEvent('${ev.id}')">Supprimer</button>
+                            </div>
+                        </div>
+                        <div class="event-details">
+                            <div class="event-detail">
+                                <span class="label">Lieu</span>
+                                <span class="value">${esc(ev.venue || '—')}</span>
+                            </div>
+                            <div class="event-detail">
+                                <span class="label">Concert</span>
+                                <span class="value">${eventDate}</span>
+                            </div>
+                            <div class="event-detail">
+                                <span class="label">Ouverture vente</span>
+                                <span class="value">${saleDate}</span>
+                            </div>
+                            <div class="event-detail">
+                                <span class="label">Page</span>
+                                <span class="value"><a href="${esc(ev.url)}" target="_blank">${esc(urlShort)}</a></span>
+                            </div>
+                            ${ev.closed_marker ? `
+                            <div class="event-detail">
+                                <span class="label">Marqueur</span>
+                                <span class="value">"${esc(ev.closed_marker)}"</span>
+                            </div>` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        async function saveEvent() {
+            const name = document.getElementById('eventName').value.trim();
+            const venue = document.getElementById('eventVenue').value.trim();
+            const date = document.getElementById('eventDate').value;
+            const saleDate = document.getElementById('eventSaleDate').value;
+            const url = document.getElementById('eventUrl').value.trim();
+            const marker = document.getElementById('eventMarker').value.trim();
+
+            if (!name || !url) {
+                showToast('Nom et URL sont obligatoires', true);
+                return;
+            }
+
+            const ev = {
+                id: editingId || slugify(name) + '-' + Date.now().toString(36),
+                name,
+                venue,
+                date: date || null,
+                sale_date: saleDate ? saleDate.replace('T', ' ') : null,
+                url,
+                closed_marker: marker || null,
+                active: true,
+            };
+
+            try {
+                const method = editingId ? 'PUT' : 'POST';
+                const res = await fetch(`${API}/api/events`, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ev),
+                });
+                if (res.ok) {
+                    showToast(editingId ? 'Evenement modifie' : 'Evenement ajoute');
+                    clearForm();
+                    loadEvents();
+                } else {
+                    showToast('Erreur serveur', true);
+                }
+            } catch (e) {
+                showToast('Impossible de contacter le serveur', true);
+            }
+        }
+
+        async function toggleEvent(id) {
+            try {
+                const res = await fetch(`${API}/api/events/${id}/toggle`, { method: 'POST' });
+                if (res.ok) {
+                    showToast('Statut mis a jour');
+                    loadEvents();
+                }
+            } catch (e) {
+                showToast('Erreur', true);
+            }
+        }
+
+        async function deleteEvent(id) {
+            if (!confirm('Supprimer cet evenement ?')) return;
+            try {
+                const res = await fetch(`${API}/api/events/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('Evenement supprime');
+                    loadEvents();
+                }
+            } catch (e) {
+                showToast('Erreur', true);
+            }
+        }
+
+        function editEvent(id) {
+            const ev = events.find(e => e.id === id);
+            if (!ev) return;
+            editingId = id;
+            document.getElementById('eventName').value = ev.name || '';
+            document.getElementById('eventVenue').value = ev.venue || '';
+            document.getElementById('eventDate').value = ev.date || '';
+            document.getElementById('eventSaleDate').value = (ev.sale_date || '').replace(' ', 'T');
+            document.getElementById('eventUrl').value = ev.url || '';
+            document.getElementById('eventMarker').value = ev.closed_marker || '';
+            document.getElementById('formTitle').textContent = 'Modifier l\'evenement';
+            document.getElementById('btnSave').textContent = 'Enregistrer';
+            document.getElementById('btnCancel').style.display = '';
+            document.querySelector('.add-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEdit() { clearForm(); }
+
+        function clearForm() {
+            editingId = null;
+            document.getElementById('eventName').value = '';
+            document.getElementById('eventVenue').value = '';
+            document.getElementById('eventDate').value = '';
+            document.getElementById('eventSaleDate').value = '';
+            document.getElementById('eventUrl').value = '';
+            document.getElementById('eventMarker').value = '';
+            document.getElementById('formTitle').textContent = '+ Ajouter un evenement';
+            document.getElementById('btnSave').textContent = 'Ajouter';
+            document.getElementById('btnCancel').style.display = 'none';
+        }
+
+        // ══════════════════════════════════════
+        // HELPERS
+        // ══════════════════════════════════════
+
+        function slugify(text) {
+            return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+
+        function esc(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function formatDate(str) {
+            if (!str) return '—';
+            try {
+                const d = new Date(str.replace(' ', 'T'));
+                return d.toLocaleDateString('fr-FR', {
+                    day: 'numeric', month: 'long', year: 'numeric',
+                    hour: str.includes(':') ? '2-digit' : undefined,
+                    minute: str.includes(':') ? '2-digit' : undefined,
+                });
+            } catch { return str; }
+        }
+
+        function showToast(msg, error = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show' + (error ? ' error' : '');
+            setTimeout(() => t.className = 'toast', 2500);
+        }
+
+        // ══════════════════════════════════════
+        // INIT
+        // ══════════════════════════════════════
+
+        loadEvents();
+
+        // Check if monitor is already running on page load
+        (async () => {
+            try {
+                const res = await fetch(`${API}/api/monitor/status`);
+                const data = await res.json();
+                updateMonitorUI(data);
+                if (data.running) startPolling();
+            } catch {}
+        })();
+    </script>
+</body>
+</html>
