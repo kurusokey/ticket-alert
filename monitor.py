@@ -24,7 +24,7 @@ from datetime import datetime
 # ═══════════════════════════════════════════════════════════
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-EVENTS_FILE = os.path.join(SCRIPT_DIR, "events.json")
+EVENTS_FILE = os.path.join(SCRIPT_DIR, "data.json")
 
 # Charge .env si present
 _env_path = os.path.join(SCRIPT_DIR, ".env")

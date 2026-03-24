@@ -698,9 +698,9 @@
             };
 
             try {
-                const method = editingId ? 'PUT' : 'POST';
-                const res = await fetch(`${API}/api/events`, {
-                    method,
+                const endpoint = editingId ? '/api/events/update' : '/api/events/create';
+                const res = await fetch(`${API}${endpoint}`, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(ev),
                 });
@@ -718,7 +718,11 @@
 
         async function toggleEvent(id) {
             try {
-                const res = await fetch(`${API}/api/events/${id}/toggle`, { method: 'POST' });
+                const res = await fetch(`${API}/api/events/toggle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id }),
+                });
                 if (res.ok) {
                     showToast('Statut mis a jour');
                     loadEvents();
@@ -731,7 +735,11 @@
         async function deleteEvent(id) {
             if (!confirm('Supprimer cet evenement ?')) return;
             try {
-                const res = await fetch(`${API}/api/events/${id}`, { method: 'DELETE' });
+                const res = await fetch(`${API}/api/events/remove`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id }),
+                });
                 if (res.ok) {
                     showToast('Evenement supprime');
                     loadEvents();

@@ -23,7 +23,7 @@ import webbrowser
 
 PORT = 5555
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-EVENTS_FILE = os.path.join(SCRIPT_DIR, "events.json")
+EVENTS_FILE = os.path.join(SCRIPT_DIR, "data.json")
 
 # Charge .env si present
 _env_path = os.path.join(SCRIPT_DIR, ".env")
@@ -336,7 +336,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
 
-        if parsed.path == "/api/events":
+        if parsed.path in ("/api/events", "/api/events/create"):
             body = self._read_body()
             events = load_events()
             events.append(body)
@@ -344,8 +344,32 @@ class Handler(SimpleHTTPRequestHandler):
             self._json_response({"ok": True})
             return
 
-        if parsed.path.startswith("/api/events/") and parsed.path.endswith("/toggle"):
-            event_id = parsed.path.split("/")[3]
+        if parsed.path == "/api/events/update":
+            body = self._read_body()
+            events = load_events()
+            updated = False
+            for i, ev in enumerate(events):
+                if ev["id"] == body["id"]:
+                    events[i] = body
+                    updated = True
+                    break
+            if not updated:
+                events.append(body)
+            save_events(events)
+            self._json_response({"ok": True})
+            return
+
+        if parsed.path == "/api/events/remove":
+            body = self._read_body()
+            event_id = body.get("id", "")
+            events = [ev for ev in load_events() if ev["id"] != event_id]
+            save_events(events)
+            self._json_response({"ok": True})
+            return
+
+        if parsed.path == "/api/events/toggle":
+            body = self._read_body()
+            event_id = body.get("id", "")
             events = load_events()
             for ev in events:
                 if ev["id"] == event_id:
@@ -365,35 +389,6 @@ class Handler(SimpleHTTPRequestHandler):
             self._json_response({"ok": ok, "message": "Arretee" if ok else "Pas en cours"})
             return
 
-        self._json_response({"error": "Not found"}, 404)
-
-    def do_PUT(self):
-        parsed = urlparse(self.path)
-        if parsed.path == "/api/events":
-            body = self._read_body()
-            events = load_events()
-            updated = False
-            for i, ev in enumerate(events):
-                if ev["id"] == body["id"]:
-                    events[i] = body
-                    updated = True
-                    break
-            if not updated:
-                events.append(body)
-            save_events(events)
-            self._json_response({"ok": True})
-            return
-        self._json_response({"error": "Not found"}, 404)
-
-    def do_DELETE(self):
-        parsed = urlparse(self.path)
-        if parsed.path.startswith("/api/events/"):
-            event_id = parsed.path.split("/")[3]
-            events = load_events()
-            events = [ev for ev in events if ev["id"] != event_id]
-            save_events(events)
-            self._json_response({"ok": True})
-            return
         self._json_response({"error": "Not found"}, 404)
 
     def _read_body(self):
