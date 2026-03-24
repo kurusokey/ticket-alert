@@ -418,6 +418,87 @@
 
         .btn-submit:active { transform: scale(0.98); }
 
+        /* ── Scheduler ── */
+        .scheduler {
+            margin-top: 0.8rem;
+            padding: 0.7rem;
+            background: #0d0d14;
+            border: 1px solid #1a1a2a;
+            border-radius: 10px;
+        }
+
+        .scheduler.scheduled {
+            border-color: #f9731644;
+            background: #12100a;
+        }
+
+        .sched-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .sched-icon { font-size: 1rem; }
+
+        .sched-label {
+            font-size: 0.8rem;
+            color: #888;
+            flex-shrink: 0;
+        }
+
+        .sched-input {
+            flex: 1;
+            min-width: 0;
+            background: #111118;
+            border: 1px solid #2a2a3a;
+            border-radius: 8px;
+            padding: 0.45rem 0.5rem;
+            color: #e0e0e0;
+            font-size: 0.82rem;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .sched-input:focus { border-color: #f97316; }
+
+        .sched-btn {
+            background: #f97316;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.45rem 0.8rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sched-btn.active {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .sched-btn:active { transform: scale(0.96); }
+
+        .sched-countdown {
+            margin-top: 0.5rem;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #f97316;
+            letter-spacing: 1px;
+        }
+
+        .sched-countdown .sched-sub {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: #666;
+            margin-top: 0.1rem;
+        }
+
         /* ── Toast ── */
         .toast {
             position: fixed;
@@ -467,6 +548,17 @@
 
             <button class="btn-cta start" id="btnStart" onclick="startMonitor()">Lancer la surveillance</button>
             <button class="btn-cta stop" id="btnStop" onclick="stopMonitor()" style="display:none">Arreter la surveillance</button>
+
+            <!-- Scheduler -->
+            <div class="scheduler" id="scheduler">
+                <div class="sched-row">
+                    <span class="sched-icon">⏰</span>
+                    <span class="sched-label">Demarrage auto</span>
+                    <input type="datetime-local" id="schedTime" class="sched-input">
+                    <button class="sched-btn" id="schedBtn" onclick="toggleSchedule()">Programmer</button>
+                </div>
+                <div class="sched-countdown" id="schedCountdown" style="display:none"></div>
+            </div>
 
             <div class="monitor-stats" id="monitorStats" style="display:none">
                 <div class="monitor-stat">
@@ -625,6 +717,7 @@
                 btnStart.style.display = 'none';
                 btnStop.style.display = '';
                 stats.style.display = '';
+                document.getElementById('scheduler').style.display = 'none';
                 document.getElementById('statChecks').textContent = data.check_count || 0;
                 document.getElementById('statStarted').textContent = data.started_at || '--:--';
             } else {
@@ -634,6 +727,7 @@
                 btnStart.style.display = '';
                 btnStop.style.display = 'none';
                 stats.style.display = 'none';
+                document.getElementById('scheduler').style.display = '';
             }
 
             // Alerts
@@ -879,10 +973,103 @@
         }
 
         // ══════════════════════════════════════
+        // SCHEDULER
+        // ══════════════════════════════════════
+
+        let schedTimer = null;
+        let schedTarget = null;
+        const SCHED_KEY = 'ticket_alert_schedule';
+
+        function toggleSchedule() {
+            if (schedTarget) {
+                cancelSchedule();
+            } else {
+                const input = document.getElementById('schedTime').value;
+                if (!input) { showToast('Choisis une date/heure', true); return; }
+                const target = new Date(input);
+                if (target <= new Date()) { showToast('L\'heure doit etre dans le futur', true); return; }
+                schedTarget = target;
+                localStorage.setItem(SCHED_KEY, target.toISOString());
+                startCountdown();
+                showToast('Demarrage programme');
+            }
+        }
+
+        function cancelSchedule() {
+            schedTarget = null;
+            localStorage.removeItem(SCHED_KEY);
+            if (schedTimer) { clearInterval(schedTimer); schedTimer = null; }
+            document.getElementById('scheduler').classList.remove('scheduled');
+            document.getElementById('schedCountdown').style.display = 'none';
+            document.getElementById('schedBtn').textContent = 'Programmer';
+            document.getElementById('schedBtn').classList.remove('active');
+            document.getElementById('schedTime').disabled = false;
+        }
+
+        function startCountdown() {
+            const sched = document.getElementById('scheduler');
+            const btn = document.getElementById('schedBtn');
+            const cd = document.getElementById('schedCountdown');
+            const input = document.getElementById('schedTime');
+
+            sched.classList.add('scheduled');
+            btn.textContent = 'Annuler';
+            btn.classList.add('active');
+            input.disabled = true;
+            cd.style.display = 'block';
+
+            if (schedTimer) clearInterval(schedTimer);
+            schedTimer = setInterval(() => {
+                const now = new Date();
+                const diff = schedTarget - now;
+
+                if (diff <= 0) {
+                    // Time's up — start monitoring!
+                    cancelSchedule();
+                    startMonitor();
+                    showToast('Surveillance demarree automatiquement');
+                    return;
+                }
+
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+
+                cd.innerHTML = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+                    + `<div class="sched-sub">avant demarrage auto</div>`;
+            }, 1000);
+        }
+
+        // Restore schedule from localStorage on page load
+        function restoreSchedule() {
+            const saved = localStorage.getItem(SCHED_KEY);
+            if (saved) {
+                const target = new Date(saved);
+                if (target > new Date()) {
+                    schedTarget = target;
+                    document.getElementById('schedTime').value = target.toISOString().slice(0, 16);
+                    startCountdown();
+                } else {
+                    // Time already passed while page was closed — start now!
+                    localStorage.removeItem(SCHED_KEY);
+                    startMonitor();
+                    showToast('Heure programmee atteinte — surveillance lancee');
+                }
+            } else {
+                // Pre-fill with tomorrow 18:00 as default
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(18, 0, 0, 0);
+                document.getElementById('schedTime').value = tomorrow.toISOString().slice(0, 16);
+            }
+        }
+
+        // ══════════════════════════════════════
         // INIT
         // ══════════════════════════════════════
 
         loadEvents();
+        restoreSchedule();
 
         (async () => {
             try {
