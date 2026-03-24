@@ -331,6 +331,21 @@ class Handler(SimpleHTTPRequestHandler):
             })
             return
 
+        if parsed.path == "/api/monitor/check":
+            # En local, le monitor tourne en thread — ce endpoint retourne juste le status
+            self._json_response({
+                "ok": True,
+                "checked": len([ev for ev in load_events() if ev.get("active")]),
+                "status": {
+                    "running": monitor_state["running"],
+                    "check_count": monitor_state["check_count"],
+                    "started_at": monitor_state["started_at"],
+                    "alerts": monitor_state["alerts"],
+                    "logs": list(monitor_state["logs"]),
+                },
+            })
+            return
+
         return SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):

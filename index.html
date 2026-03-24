@@ -513,21 +513,36 @@
 
         async function pollMonitorStatus() {
             try {
-                const res = await fetch(`${API}/api/monitor/status`);
+                // Appelle /check qui fait le vrai scraping sur Vercel
+                // (en local, le thread fait le scraping, /check retourne juste le status)
+                const res = await fetch(`${API}/api/monitor/check`);
                 const data = await res.json();
-                updateMonitorUI(data);
-
-                if (!data.running && pollInterval) {
-                    stopPolling();
+                if (data.status) {
+                    updateMonitorUI(data.status);
+                    if (!data.status.running && pollInterval) {
+                        stopPolling();
+                    }
+                } else if (data.skipped) {
+                    // Monitor stopped externally
+                    const statusRes = await fetch(`${API}/api/monitor/status`);
+                    const statusData = await statusRes.json();
+                    updateMonitorUI(statusData);
+                    if (!statusData.running) stopPolling();
                 }
             } catch (e) {
-                // ignore
+                // Fallback to simple status
+                try {
+                    const res = await fetch(`${API}/api/monitor/status`);
+                    const data = await res.json();
+                    updateMonitorUI(data);
+                } catch {}
             }
         }
 
         function startPolling() {
             if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(pollMonitorStatus, 2000);
+            // Poll toutes les 10s (chaque appel fait un vrai check sur Vercel)
+            pollInterval = setInterval(pollMonitorStatus, 10000);
             pollMonitorStatus();
         }
 
