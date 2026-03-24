@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0f">
-    <title>Ticket Alert</title>
+    <title>goFindMyTickets</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎫</text></svg>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -286,8 +286,8 @@
 
         .event-actions-row {
             display: flex;
-            gap: 0.4rem;
-            margin-top: 0.6rem;
+            gap: 0.35rem;
+            margin-top: 0.7rem;
         }
 
         .event-actions-row button {
@@ -295,14 +295,16 @@
             background: #0a0a0f;
             border: 1px solid #222;
             color: #888;
-            border-radius: 8px;
-            padding: 0.5rem;
-            font-size: 0.78rem;
+            border-radius: 10px;
+            padding: 0.6rem 0.3rem;
+            font-size: 0.8rem;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .event-actions-row button:active { background: #1a1a2a; color: #fff; }
+        .event-actions-row .btn-del { color: #777; }
         .event-actions-row .btn-del:active { color: #ef4444; border-color: #ef4444; }
 
         .empty-state {
@@ -421,10 +423,10 @@
         /* ── Scheduler ── */
         .scheduler {
             margin-top: 0.8rem;
-            padding: 0.7rem;
+            padding: 0.8rem;
             background: #0d0d14;
             border: 1px solid #1a1a2a;
-            border-radius: 10px;
+            border-radius: 12px;
         }
 
         .scheduler.scheduled {
@@ -432,19 +434,20 @@
             background: #12100a;
         }
 
-        .sched-row {
+        .sched-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .sched-icon { font-size: 1rem; }
-
-        .sched-label {
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
             font-size: 0.8rem;
             color: #888;
-            flex-shrink: 0;
+        }
+
+        .sched-header span:first-child { font-size: 1.1rem; }
+
+        .sched-controls {
+            display: flex;
+            gap: 0.5rem;
         }
 
         .sched-input {
@@ -452,10 +455,10 @@
             min-width: 0;
             background: #111118;
             border: 1px solid #2a2a3a;
-            border-radius: 8px;
-            padding: 0.45rem 0.5rem;
+            border-radius: 10px;
+            padding: 0.65rem 0.7rem;
             color: #e0e0e0;
-            font-size: 0.82rem;
+            font-size: 0.9rem;
             outline: none;
             -webkit-appearance: none;
         }
@@ -466,10 +469,10 @@
             background: #f97316;
             color: #000;
             border: none;
-            border-radius: 8px;
-            padding: 0.45rem 0.8rem;
-            font-size: 0.8rem;
-            font-weight: 600;
+            border-radius: 10px;
+            padding: 0.65rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 700;
             cursor: pointer;
             white-space: nowrap;
             flex-shrink: 0;
@@ -483,20 +486,21 @@
         .sched-btn:active { transform: scale(0.96); }
 
         .sched-countdown {
-            margin-top: 0.5rem;
+            margin-top: 0.7rem;
             text-align: center;
-            font-size: 1.3rem;
+            font-size: 1.6rem;
             font-weight: 700;
             font-variant-numeric: tabular-nums;
             color: #f97316;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
 
         .sched-countdown .sched-sub {
             font-size: 0.75rem;
             font-weight: 400;
-            color: #666;
-            margin-top: 0.1rem;
+            color: #555;
+            letter-spacing: 0;
+            margin-top: 0.15rem;
         }
 
         /* ── Toast ── */
@@ -522,19 +526,30 @@
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .toast.error { color: #ef4444; }
 
-        /* ── Desktop tweaks ── */
+        /* ── Small phones ── */
+        @media (max-width: 380px) {
+            .container { padding: 0.7rem; }
+            header h1 { font-size: 1.2rem; }
+            .form-row { grid-template-columns: 1fr; gap: 0.7rem; }
+            .sched-controls { flex-direction: column; }
+            .sched-btn { width: 100%; text-align: center; padding: 0.7rem; }
+            .monitor-stat .val { font-size: 0.9rem; }
+        }
+
+        /* ── Desktop ── */
         @media (min-width: 640px) {
             .container { padding: 2rem 1.5rem; }
             header h1 { font-size: 1.8rem; }
-            .btn-cta { max-width: 300px; margin: 0 auto; }
+            .btn-cta { max-width: 340px; margin: 0 auto; }
             .event-card { padding: 1.2rem 1.5rem; }
+            .sched-countdown { font-size: 2rem; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Ticket <span>Alert</span></h1>
+            <h1>go<span>Find</span>My<span>Tickets</span></h1>
             <p>Surveillance billetterie + Telegram</p>
         </header>
 
@@ -551,11 +566,13 @@
 
             <!-- Scheduler -->
             <div class="scheduler" id="scheduler">
-                <div class="sched-row">
-                    <span class="sched-icon">⏰</span>
-                    <span class="sched-label">Demarrage auto</span>
+                <div class="sched-header">
+                    <span>⏰</span>
+                    <span>Demarrage automatique</span>
+                </div>
+                <div class="sched-controls">
                     <input type="datetime-local" id="schedTime" class="sched-input">
-                    <button class="sched-btn" id="schedBtn" onclick="toggleSchedule()">Programmer</button>
+                    <button class="sched-btn" id="schedBtn" onclick="toggleSchedule()">OK</button>
                 </div>
                 <div class="sched-countdown" id="schedCountdown" style="display:none"></div>
             </div>
