@@ -331,7 +331,7 @@ class Handler(SimpleHTTPRequestHandler):
             })
             return
 
-        if parsed.path == "/api/monitor/check":
+        if parsed.path == "/api/monitor/scan":
             # En local, le monitor tourne en thread — ce endpoint retourne juste le status
             self._json_response({
                 "ok": True,
