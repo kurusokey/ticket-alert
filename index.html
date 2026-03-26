@@ -8,6 +8,8 @@
     <meta name="theme-color" content="#0a0a0f">
     <title>goFindMyTickets</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎫</text></svg>">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.svg">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -536,6 +538,130 @@
             .monitor-stat .val { font-size: 0.9rem; }
         }
 
+        /* ── Push badge ── */
+        .push-badge {
+            font-size: 0.7rem;
+            color: #666;
+            background: #111;
+            border: 1px solid #333;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .push-badge.on { color: #22c55e; border-color: #22c55e44; background: #22c55e11; }
+
+        /* ── Multi-URL form ── */
+        .url-entry {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 0.5rem;
+            align-items: flex-start;
+        }
+        .url-entry .url-fields {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .url-entry input {
+            background: #111118;
+            border: 1px solid #2a2a3a;
+            border-radius: 10px;
+            padding: 0.65rem 0.9rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+            width: 100%;
+        }
+        .url-entry input:focus { border-color: #f97316; }
+        .url-entry input::placeholder { color: #3a3a4a; }
+        .url-entry .label-input {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.9rem;
+        }
+        .btn-remove-url {
+            background: none;
+            border: 1px solid #333;
+            color: #666;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 0.4rem;
+        }
+        .btn-remove-url:active { color: #ef4444; border-color: #ef4444; }
+        .btn-add-url {
+            background: none;
+            border: 1px dashed #333;
+            color: #666;
+            border-radius: 10px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            margin-top: 0.2rem;
+        }
+        .btn-add-url:active { color: #f97316; border-color: #f97316; }
+
+        /* ── Check history ── */
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 1.2rem;
+            margin-bottom: 0.6rem;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .history-header .section-title { font-size: 0.75rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+        .history-toggle { color: #555; font-size: 0.8rem; transition: transform 0.2s; }
+        .history-toggle.open { transform: rotate(180deg); }
+
+        .history-container {
+            background: #08080d;
+            border: 1px solid #141420;
+            border-radius: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 1.2rem;
+        }
+        .history-container:empty::after {
+            content: 'Aucun historique';
+            display: block;
+            text-align: center;
+            padding: 1.5rem;
+            color: #444;
+            font-size: 0.8rem;
+        }
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #0e0e18;
+            font-size: 0.75rem;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .history-dot.ok { background: #22c55e; }
+        .history-dot.alert { background: #f97316; }
+        .history-dot.error { background: #ef4444; }
+        .history-dot.closed { background: #555; }
+        .history-time { color: #444; white-space: nowrap; }
+        .history-event { color: #888; font-weight: 500; }
+        .history-detail { color: #555; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
         /* ── Desktop ── */
         @media (min-width: 640px) {
             .container { padding: 2rem 1.5rem; }
@@ -558,6 +684,7 @@
             <div class="monitor-status-row">
                 <div class="status-dot" id="monitorDot"></div>
                 <div class="monitor-status-text" id="monitorTitle"><strong>Surveillance inactive</strong></div>
+                <button class="push-badge" id="pushBadge" onclick="togglePush()">Push off</button>
                 <span class="telegram-badge">Telegram</span>
             </div>
 
@@ -602,6 +729,13 @@
             <button class="btn-add" onclick="openForm()">+ Ajouter</button>
         </div>
         <div class="events-list" id="eventsList"></div>
+
+        <!-- ── Check History ── -->
+        <div class="history-header" onclick="toggleHistory()">
+            <span class="section-title">Historique des checks</span>
+            <span class="history-toggle" id="historyToggle">▼</span>
+        </div>
+        <div class="history-container" id="historyContainer" style="display:none"></div>
     </div>
 
     <!-- ── Form overlay ── -->
@@ -630,9 +764,10 @@
                         <input type="datetime-local" id="eventSaleDate">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>URL de la page</label>
-                    <input type="url" id="eventUrl" placeholder="https://...">
+                <div class="form-group" id="urlsGroup">
+                    <label>URLs a surveiller</label>
+                    <div id="urlsList"></div>
+                    <button type="button" class="btn-add-url" onclick="addUrlField()">+ Ajouter une URL</button>
                 </div>
                 <div class="form-group">
                     <label>Texte de fermeture</label>
@@ -651,8 +786,85 @@
         let events = [];
         let editingId = null;
         let pollInterval = null;
+        let statusInterval = null;
 
         const MON_KEY = 'gfmt_monitor';
+
+        // ══════════════════════════════════════
+        // SERVICE WORKER + PUSH
+        // ══════════════════════════════════════
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+        }
+
+        async function togglePush() {
+            if (!('PushManager' in window)) { showToast('Push non supporte', true); return; }
+            const reg = await navigator.serviceWorker.ready;
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) {
+                await existing.unsubscribe();
+                await fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: existing.endpoint }) }).catch(() => {});
+                document.getElementById('pushBadge').textContent = 'Push off';
+                document.getElementById('pushBadge').classList.remove('on');
+                showToast('Push desactive');
+            } else {
+                try {
+                    const vapidRes = await fetch('/api/push/vapid');
+                    const { publicKey } = await vapidRes.json();
+                    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+                    await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+                    document.getElementById('pushBadge').textContent = 'Push on';
+                    document.getElementById('pushBadge').classList.add('on');
+                    showToast('Push active');
+                } catch (e) {
+                    showToast('Erreur push: ' + e.message, true);
+                }
+            }
+        }
+
+        // Restore push badge state on load
+        async function restorePushState() {
+            try {
+                if (!('PushManager' in window) || !('serviceWorker' in navigator)) return;
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    document.getElementById('pushBadge').textContent = 'Push on';
+                    document.getElementById('pushBadge').classList.add('on');
+                }
+            } catch {}
+        }
+
+        // ══════════════════════════════════════
+        // ALERT SOUND (AudioContext)
+        // ══════════════════════════════════════
+
+        let alertSoundPlayed = {};
+
+        function playAlertSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [523, 659, 784, 1047].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'square';
+                    osc.frequency.value = freq;
+                    gain.gain.value = 0.15;
+                    osc.start(ctx.currentTime + i * 0.12);
+                    osc.stop(ctx.currentTime + i * 0.12 + 0.1);
+                });
+            } catch {}
+        }
 
         // ══════════════════════════════════════
         // MONITOR (100% client-side state)
@@ -673,7 +885,8 @@
             showToast('Surveillance lancee');
             renderMonitorUI();
             startPolling();
-            // Also try server-side start (best effort for local server)
+            startStatusPolling();
+            // Also try server-side start (best effort)
             fetch(`${API}/api/monitor/start`, { method: 'POST' }).catch(() => {});
         }
 
@@ -682,6 +895,7 @@
             state.running = false;
             setMonState(state);
             stopPolling();
+            stopStatusPolling();
             showToast('Surveillance arretee');
             renderMonitorUI();
             fetch(`${API}/api/monitor/stop`, { method: 'POST' }).catch(() => {});
@@ -702,10 +916,16 @@
                 if (data.results) {
                     for (const r of data.results) {
                         if (r.status === 'OPEN' || r.status === 'CHANGED') {
-                            state.alerts.push({ time: now, event: r.event, url: r.url, detail: r.detail });
+                            const alertKey = r.event + '-' + (r.url || '') + '-' + r.status;
+                            state.alerts.push({ time: now, event: r.event, url: r.url, detail: r.detail, md5: r.md5, newLinks: r.newLinks, contentChanged: r.contentChanged });
                             state.logs.push({ time: now, message: `🚨 ${r.event} — ${r.detail}`, level: 'alert' });
                             // Vibrate phone
                             if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+                            // Play sound for new alerts
+                            if (!alertSoundPlayed[alertKey]) {
+                                alertSoundPlayed[alertKey] = true;
+                                playAlertSound();
+                            }
                         } else if (r.status === 'ERROR') {
                             state.logs.push({ time: now, message: `[${r.event}] ERREUR: ${r.detail}`, level: 'error' });
                         } else {
@@ -725,6 +945,36 @@
             renderMonitorUI();
         }
 
+        // Lightweight status polling (reads server KV, no scan)
+        async function pollStatus() {
+            try {
+                const res = await fetch(`${API}/api/monitor/status`);
+                const data = await res.json();
+                if (data && data.check_count !== undefined) {
+                    const state = getMonState();
+                    // Merge server-side stats if available
+                    if (data.check_count > (state.check_count || 0)) {
+                        state.check_count = data.check_count;
+                    }
+                    if (data.alerts && data.alerts.length) {
+                        for (const a of data.alerts) {
+                            const exists = state.alerts.some(sa => sa.event === a.event && sa.time === a.time);
+                            if (!exists) {
+                                state.alerts.push(a);
+                                const alertKey = a.event + '-' + (a.url || '') + '-server';
+                                if (!alertSoundPlayed[alertKey]) {
+                                    alertSoundPlayed[alertKey] = true;
+                                    playAlertSound();
+                                }
+                            }
+                        }
+                    }
+                    setMonState(state);
+                    renderMonitorUI();
+                }
+            } catch {}
+        }
+
         function startPolling() {
             if (pollInterval) clearInterval(pollInterval);
             pollInterval = setInterval(doCheck, 10000);
@@ -733,6 +983,15 @@
 
         function stopPolling() {
             if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+        }
+
+        function startStatusPolling() {
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(pollStatus, 15000);
+        }
+
+        function stopStatusPolling() {
+            if (statusInterval) { clearInterval(statusInterval); statusInterval = null; }
         }
 
         // Keep page alive on mobile — prevents browser from suspending the tab
@@ -753,6 +1012,7 @@
                 if (state.running) {
                     requestWakeLock();
                     if (!pollInterval) startPolling();
+                    if (!statusInterval) startStatusPolling();
                 }
             }
         });
@@ -794,12 +1054,21 @@
             // Alerts
             const ac = document.getElementById('monitorAlerts');
             if (data.alerts?.length) {
-                ac.innerHTML = data.alerts.map(a => `
+                ac.innerHTML = data.alerts.map(a => {
+                    let extra = '';
+                    if (a.newLinks && a.newLinks.length) {
+                        extra += `<div style="margin-top:0.3rem;font-size:0.75rem;color:#fb923c">Nouveaux liens: ${a.newLinks.map(l => `<a href="${esc(l)}" target="_blank" style="color:#fb923c">${esc(l)}</a>`).join(', ')}</div>`;
+                    }
+                    if (a.contentChanged) {
+                        extra += `<div style="margin-top:0.2rem;font-size:0.72rem;color:#888">Contenu modifie (md5: ${esc(a.md5 || '?')})</div>`;
+                    }
+                    return `
                     <div class="alert-item">
                         <div class="alert-text">🚨 ${esc(a.event)} — BILLETTERIE OUVERTE</div>
                         ${a.url ? `<a href="${esc(a.url)}" target="_blank">Ouvrir le site</a>` : ''}
-                    </div>
-                `).join('');
+                        ${extra}
+                    </div>`;
+                }).join('');
             } else {
                 ac.innerHTML = '';
             }
@@ -863,6 +1132,13 @@
             renderEvents();
         }
 
+        function getEventUrls(ev) {
+            // Backward compat: if event has `url` (string), wrap as single entry
+            if (ev.urls && Array.isArray(ev.urls) && ev.urls.length > 0) return ev.urls;
+            if (ev.url) return [{ url: ev.url, label: '' }];
+            return [];
+        }
+
         function renderEvents() {
             const list = document.getElementById('eventsList');
             if (events.length === 0) {
@@ -876,8 +1152,16 @@
                 const cc = ev.active ? '' : 'inactive';
                 const sd = ev.sale_date ? fmtDate(ev.sale_date) : '';
                 const ed = ev.date ? fmtDate(ev.date) : '';
-                let host = '';
-                try { host = new URL(ev.url).hostname.replace('www.',''); } catch {}
+                const urls = getEventUrls(ev);
+                let urlsHtml = '';
+                for (const u of urls) {
+                    let host = '';
+                    try { host = new URL(u.url).hostname.replace('www.',''); } catch {}
+                    if (host) {
+                        const lbl = u.label ? esc(u.label) : esc(host);
+                        urlsHtml += `<span><a href="${esc(u.url)}" target="_blank">${lbl}</a></span>`;
+                    }
+                }
 
                 return `
                     <div class="event-card ${cc}">
@@ -889,7 +1173,7 @@
                             ${ev.venue ? `<span>${esc(ev.venue)}</span>` : ''}
                             ${ed ? `<span>${ed}</span>` : ''}
                             ${sd ? `<span>Vente: ${sd}</span>` : ''}
-                            ${host ? `<span><a href="${esc(ev.url)}" target="_blank">${esc(host)}</a></span>` : ''}
+                            ${urlsHtml}
                         </div>
                         <div class="event-actions-row">
                             <button onclick="toggleEvent('${ev.id}')">${ev.active ? 'Pause' : 'Activer'}</button>
@@ -901,8 +1185,49 @@
         }
 
         // ══════════════════════════════════════
-        // FORM
+        // FORM (multi-URL support)
         // ══════════════════════════════════════
+
+        let urlFieldCount = 0;
+
+        function addUrlField(urlVal, labelVal) {
+            urlFieldCount++;
+            const id = 'urlEntry_' + urlFieldCount;
+            const container = document.getElementById('urlsList');
+            const div = document.createElement('div');
+            div.className = 'url-entry';
+            div.id = id;
+            div.innerHTML = `
+                <div class="url-fields">
+                    <input type="url" class="url-input" placeholder="https://..." value="${esc(urlVal || '')}">
+                    <input type="text" class="label-input" placeholder="Label (optionnel)" value="${esc(labelVal || '')}">
+                </div>
+                <button type="button" class="btn-remove-url" onclick="removeUrlField('${id}')">&times;</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeUrlField(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+            // Ensure at least one URL field
+            if (document.getElementById('urlsList').children.length === 0) {
+                addUrlField();
+            }
+        }
+
+        function getFormUrls() {
+            const entries = document.querySelectorAll('#urlsList .url-entry');
+            const urls = [];
+            entries.forEach(entry => {
+                const urlInput = entry.querySelector('.url-input');
+                const labelInput = entry.querySelector('.label-input');
+                const url = urlInput ? urlInput.value.trim() : '';
+                const label = labelInput ? labelInput.value.trim() : '';
+                if (url) urls.push({ url, label });
+            });
+            return urls;
+        }
 
         function openForm() {
             editingId = null;
@@ -925,8 +1250,16 @@
             document.getElementById('eventVenue').value = ev.venue || '';
             document.getElementById('eventDate').value = ev.date || '';
             document.getElementById('eventSaleDate').value = (ev.sale_date || '').replace(' ', 'T');
-            document.getElementById('eventUrl').value = ev.url || '';
             document.getElementById('eventMarker').value = ev.closed_marker || '';
+            // Populate URL fields
+            document.getElementById('urlsList').innerHTML = '';
+            urlFieldCount = 0;
+            const urls = getEventUrls(ev);
+            if (urls.length === 0) {
+                addUrlField();
+            } else {
+                for (const u of urls) addUrlField(u.url, u.label);
+            }
             document.getElementById('formTitle').textContent = 'Modifier';
             document.getElementById('btnSave').textContent = 'Enregistrer';
             document.getElementById('formOverlay').classList.add('open');
@@ -934,8 +1267,8 @@
 
         async function saveEvent() {
             const name = document.getElementById('eventName').value.trim();
-            const url = document.getElementById('eventUrl').value.trim();
-            if (!name || !url) { showToast('Nom et URL requis', true); return; }
+            const urls = getFormUrls();
+            if (!name || urls.length === 0) { showToast('Nom et au moins une URL requis', true); return; }
 
             const ev = {
                 id: editingId || slugify(name) + '-' + Date.now().toString(36),
@@ -943,7 +1276,8 @@
                 venue: document.getElementById('eventVenue').value.trim(),
                 date: document.getElementById('eventDate').value || null,
                 sale_date: document.getElementById('eventSaleDate').value ? document.getElementById('eventSaleDate').value.replace('T', ' ') : null,
-                url,
+                urls,
+                url: urls[0].url, // backward compat: keep first URL as `url`
                 closed_marker: document.getElementById('eventMarker').value.trim() || null,
                 active: true,
             };
@@ -995,8 +1329,55 @@
         }
 
         function clearFormFields() {
-            ['eventName','eventVenue','eventDate','eventSaleDate','eventUrl','eventMarker']
+            ['eventName','eventVenue','eventDate','eventSaleDate','eventMarker']
                 .forEach(id => document.getElementById(id).value = '');
+            document.getElementById('urlsList').innerHTML = '';
+            urlFieldCount = 0;
+            addUrlField(); // Start with one empty URL field
+        }
+
+        // ══════════════════════════════════════
+        // CHECK HISTORY
+        // ══════════════════════════════════════
+
+        let historyVisible = false;
+
+        function toggleHistory() {
+            historyVisible = !historyVisible;
+            const container = document.getElementById('historyContainer');
+            const toggle = document.getElementById('historyToggle');
+            container.style.display = historyVisible ? 'block' : 'none';
+            toggle.classList.toggle('open', historyVisible);
+            if (historyVisible) loadHistory();
+        }
+
+        async function loadHistory() {
+            const container = document.getElementById('historyContainer');
+            try {
+                const res = await fetch(`${API}/api/monitor/history`);
+                const data = await res.json();
+                if (data && Array.isArray(data) && data.length > 0) {
+                    container.innerHTML = data.map(h => {
+                        const dotClass = h.status === 'OPEN' || h.status === 'CHANGED' ? 'alert'
+                            : h.status === 'ERROR' ? 'error'
+                            : h.status === 'CLOSED' ? 'closed'
+                            : 'ok';
+                        const time = h.timestamp ? new Date(h.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+                        const date = h.timestamp ? new Date(h.timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+                        return `
+                            <div class="history-item">
+                                <span class="history-dot ${dotClass}"></span>
+                                <span class="history-time">${date} ${time}</span>
+                                <span class="history-event">${esc(h.event || '')}</span>
+                                <span class="history-detail">${esc(h.detail || h.status || '')}</span>
+                            </div>`;
+                    }).join('');
+                } else {
+                    container.innerHTML = '';
+                }
+            } catch {
+                container.innerHTML = '<div style="text-align:center;padding:1rem;color:#444;font-size:0.8rem">Impossible de charger l\'historique</div>';
+            }
         }
 
         // ══════════════════════════════════════
@@ -1131,6 +1512,7 @@
 
         loadEvents();
         restoreSchedule();
+        restorePushState();
 
         // Restore monitor state from localStorage
         (() => {
@@ -1138,6 +1520,7 @@
             renderMonitorUI();
             if (state.running) {
                 startPolling();
+                startStatusPolling();
             }
         })();
     </script>

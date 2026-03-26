@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0a0a0f" rx="0"/>
+  <!-- Ticket body -->
+  <rect x="77" y="128" width="358" height="256" rx="31" fill="#f97316"/>
+  <!-- Top notch -->
+  <circle cx="195" cy="128" r="23" fill="#0a0a0f"/>
+  <!-- Bottom notch -->
+  <circle cx="195" cy="384" r="23" fill="#0a0a0f"/>
+  <!-- Dashed line -->
+  <line x1="195" y1="155" x2="195" y2="357" stroke="#0a0a0f" stroke-width="3" stroke-dasharray="10,8" opacity="0.7"/>
+  <!-- "go" on stub -->
+  <text x="136" y="266" font-family="Helvetica,Arial,sans-serif" font-size="51" font-weight="bold" fill="#0a0a0f" text-anchor="middle">go</text>
+  <!-- "FMT" on main -->
+  <text x="330" y="274" font-family="Helvetica,Arial,sans-serif" font-size="82" font-weight="bold" fill="#ffffff" text-anchor="middle">FMT</text>
+</svg>

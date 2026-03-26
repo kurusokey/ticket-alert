@@ -1,0 +1,14 @@
+{
+  "name": "gofindmytickets",
+  "version": "2.0.0",
+  "description": "goFindMyTickets — Surveillance de billetterie avec alertes",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@vercel/kv": "^2.0.0",
+    "cheerio": "^1.0.0",
+    "web-push": "^3.6.7"
+  }
+}
