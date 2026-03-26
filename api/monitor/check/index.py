@@ -34,7 +34,7 @@ class handler(BaseHTTPRequestHandler):
                 msg += f"\n\n👉 {url}\n\nFONCE PRENDRE TES PLACES !"
                 send_telegram(msg)
 
-        json_response(self, {"ok": True, "checked": len(active), "results": results, "time": now})
+        json_response(self, {"ok": True, "checked": len(active), "results": results, "time": now, "v": 2})
 
     def do_OPTIONS(self):
         json_response(self, {})
