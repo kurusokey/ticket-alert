@@ -153,15 +153,21 @@ def check_event(event):
                     return "OPEN", f"Lien billetterie : {platform}", link["href"]
 
             # Lien d'achat direct
-            if any(kw in href for kw in ["panier", "cart", "checkout", "purchase"]):
+            if any(kw in href for kw in ["panier", "cart", "checkout", "purchase", "manifestation", "booking", "order"]):
                 return "OPEN", f"Lien d'achat : {href}", link["href"]
 
-            # Bouton "acheter"
+            # Bouton "acheter" / "reserver"
             if any(kw in link_text for kw in [
                 "acheter", "achetez vos billets", "achetez vos places",
-                "prendre mes places", "accéder à la billetterie"
+                "prendre mes places", "accéder à la billetterie",
+                "reserver", "réserver",
             ]):
-                return "OPEN", f"Bouton d'achat : '{link_text}'", link["href"]
+                if not any(skip in href for skip in ["groupes", "vip", "racing92"]):
+                    return "OPEN", f"Bouton d'achat : '{link_text}'", link["href"]
+
+            # Lien vers une billetterie specifique a un evenement
+            if "tickets." in href and ("/manifestation/" in href or "/event/" in href or "/show/" in href):
+                return "OPEN", f"Lien billetterie directe : {href}", link["href"]
 
         # ── CHECK 2 : Marqueur de fermeture ──
         if closed_marker:

@@ -151,10 +151,18 @@ def check_event(event):
             for platform in TICKET_PLATFORMS:
                 if platform in href:
                     return "OPEN", f"Lien billetterie : {platform}", link["href"]
-            if any(kw in href for kw in ["panier", "cart", "checkout", "purchase"]):
+            if any(kw in href for kw in ["panier", "cart", "checkout", "purchase", "manifestation", "booking", "order"]):
                 return "OPEN", f"Lien d'achat : {href}", link["href"]
-            if any(kw in link_text for kw in ["acheter", "achetez vos billets", "achetez vos places", "prendre mes places"]):
-                return "OPEN", f"Bouton d'achat : '{link_text}'", link["href"]
+            if any(kw in link_text for kw in [
+                "acheter", "achetez vos billets", "achetez vos places",
+                "prendre mes places", "reserver", "réserver",
+            ]):
+                # Exclure les liens groupes/VIP/generiques deja presents
+                if not any(skip in href for skip in ["groupes", "vip", "racing92"]):
+                    return "OPEN", f"Bouton d'achat : '{link_text}'", link["href"]
+            # Lien vers une billetterie specifique a un evenement
+            if "tickets." in href and ("/manifestation/" in href or "/event/" in href or "/show/" in href):
+                return "OPEN", f"Lien billetterie directe : {href}", link["href"]
 
         if closed_marker:
             if closed_marker.lower() in page_text:

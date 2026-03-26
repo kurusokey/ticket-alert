@@ -652,71 +652,113 @@
         let editingId = null;
         let pollInterval = null;
 
+        const MON_KEY = 'gfmt_monitor';
+
         // ══════════════════════════════════════
-        // MONITOR
+        // MONITOR (100% client-side state)
         // ══════════════════════════════════════
 
-        async function startMonitor() {
-            try {
-                const res = await fetch(`${API}/api/monitor/start`, { method: 'POST' });
-                const data = await res.json();
-                if (data.ok) {
-                    showToast('Surveillance lancee');
-                    startPolling();
-                } else {
-                    showToast(data.message || 'Deja en cours', true);
-                }
-            } catch (e) {
-                showToast('Erreur serveur', true);
-            }
+        function getMonState() {
+            try { return JSON.parse(localStorage.getItem(MON_KEY)) || {}; }
+            catch { return {}; }
         }
 
-        async function stopMonitor() {
-            try {
-                const res = await fetch(`${API}/api/monitor/stop`, { method: 'POST' });
-                const data = await res.json();
-                if (data.ok) {
-                    showToast('Surveillance arretee');
-                    stopPolling();
-                    updateMonitorUI({ running: false, check_count: 0, logs: [], alerts: [] });
-                }
-            } catch (e) {
-                showToast('Erreur', true);
-            }
+        function setMonState(s) {
+            localStorage.setItem(MON_KEY, JSON.stringify(s));
         }
 
-        async function pollMonitorStatus() {
+        function startMonitor() {
+            const state = { running: true, check_count: 0, started_at: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}), logs: [], alerts: [] };
+            setMonState(state);
+            showToast('Surveillance lancee');
+            renderMonitorUI();
+            startPolling();
+            // Also try server-side start (best effort for local server)
+            fetch(`${API}/api/monitor/start`, { method: 'POST' }).catch(() => {});
+        }
+
+        function stopMonitor() {
+            const state = getMonState();
+            state.running = false;
+            setMonState(state);
+            stopPolling();
+            showToast('Surveillance arretee');
+            renderMonitorUI();
+            fetch(`${API}/api/monitor/stop`, { method: 'POST' }).catch(() => {});
+        }
+
+        async function doCheck() {
+            const state = getMonState();
+            if (!state.running) return;
+
+            const now = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
             try {
                 const res = await fetch(`${API}/api/monitor/check`);
                 const data = await res.json();
-                if (data.status) {
-                    updateMonitorUI(data.status);
-                    if (!data.status.running && pollInterval) stopPolling();
-                } else if (data.skipped) {
-                    const r2 = await fetch(`${API}/api/monitor/status`);
-                    const d2 = await r2.json();
-                    updateMonitorUI(d2);
-                    if (!d2.running) stopPolling();
+
+                state.check_count = (state.check_count || 0) + 1;
+
+                if (data.results) {
+                    for (const r of data.results) {
+                        if (r.status === 'OPEN' || r.status === 'CHANGED') {
+                            state.alerts.push({ time: now, event: r.event, url: r.url, detail: r.detail });
+                            state.logs.push({ time: now, message: `🚨 ${r.event} — ${r.detail}`, level: 'alert' });
+                            // Vibrate phone
+                            if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+                        } else if (r.status === 'ERROR') {
+                            state.logs.push({ time: now, message: `[${r.event}] ERREUR: ${r.detail}`, level: 'error' });
+                        } else {
+                            state.logs.push({ time: now, message: `[${r.event}] ${r.detail}`, level: 'info' });
+                        }
+                    }
                 }
+
+                // Keep last 50 logs
+                if (state.logs.length > 50) state.logs = state.logs.slice(-50);
+
             } catch (e) {
-                try {
-                    const res = await fetch(`${API}/api/monitor/status`);
-                    updateMonitorUI(await res.json());
-                } catch {}
+                state.logs.push({ time: now, message: `Erreur reseau: ${e.message}`, level: 'error' });
             }
+
+            setMonState(state);
+            renderMonitorUI();
         }
 
         function startPolling() {
             if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(pollMonitorStatus, 10000);
-            pollMonitorStatus();
+            pollInterval = setInterval(doCheck, 10000);
+            doCheck();
         }
 
         function stopPolling() {
             if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
         }
 
-        function updateMonitorUI(data) {
+        // Keep page alive on mobile — prevents browser from suspending the tab
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => { wakeLock = null; });
+                }
+            } catch {}
+        }
+
+        // Re-acquire wake lock + resume polling when page becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const state = getMonState();
+                if (state.running) {
+                    requestWakeLock();
+                    if (!pollInterval) startPolling();
+                }
+            }
+        });
+
+        function renderMonitorUI() {
+            const data = getMonState();
             const panel = document.getElementById('monitorPanel');
             const dot = document.getElementById('monitorDot');
             const title = document.getElementById('monitorTitle');
@@ -737,6 +779,7 @@
                 document.getElementById('scheduler').style.display = 'none';
                 document.getElementById('statChecks').textContent = data.check_count || 0;
                 document.getElementById('statStarted').textContent = data.started_at || '--:--';
+                requestWakeLock();
             } else {
                 panel.className = 'monitor-panel';
                 dot.className = 'status-dot';
@@ -745,6 +788,7 @@
                 btnStop.style.display = 'none';
                 stats.style.display = 'none';
                 document.getElementById('scheduler').style.display = '';
+                if (wakeLock) { wakeLock.release(); wakeLock = null; }
             }
 
             // Alerts
@@ -1088,13 +1132,13 @@
         loadEvents();
         restoreSchedule();
 
-        (async () => {
-            try {
-                const res = await fetch(`${API}/api/monitor/status`);
-                const data = await res.json();
-                updateMonitorUI(data);
-                if (data.running) startPolling();
-            } catch {}
+        // Restore monitor state from localStorage
+        (() => {
+            const state = getMonState();
+            renderMonitorUI();
+            if (state.running) {
+                startPolling();
+            }
         })();
     </script>
 </body>
