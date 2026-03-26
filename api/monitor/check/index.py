@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler
 from datetime import datetime
 import json
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from lib import json_response, get_events, check_event, send_telegram
 
 class handler(BaseHTTPRequestHandler):
