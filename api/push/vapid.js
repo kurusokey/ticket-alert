@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
     return res.end();
   }
 
-  const publicKey = process.env.VAPID_PUBLIC_KEY || "";
+  const publicKey = (process.env.VAPID_PUBLIC_KEY || "").trim();
 
   return jsonResponse(res, { publicKey });
 };
