@@ -1323,6 +1323,20 @@
             if (!confirm('Supprimer ?')) return;
             lsSaveEvents(lsGetEvents().filter(e => e.id !== id));
             apiCall(`/api/events?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+
+            // Nettoyer les logs, alertes et resultats lies a cet evenement
+            const state = getMonState();
+            const evName = (events.find(e => e.id === id) || {}).name;
+            if (evName) {
+                state.logs = (state.logs || []).filter(l => !l.message?.includes(evName));
+                state.alerts = (state.alerts || []).filter(a => a.event !== evName);
+            }
+            if (state.last_results) {
+                state.last_results = state.last_results.filter(r => r.event !== evName);
+            }
+            setMonState(state);
+            renderMonitorUI();
+
             showToast('Supprime');
             loadEvents();
         }
