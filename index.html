@@ -1291,9 +1291,8 @@
             }
             lsSaveEvents(stored);
 
-            const endpoint = editingId ? '/api/events/update' : '/api/events/create';
-            apiCall(endpoint, {
-                method: 'POST',
+            apiCall('/api/events', {
+                method: editingId ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(ev),
             });
@@ -1305,13 +1304,17 @@
 
         async function toggleEvent(id) {
             const stored = lsGetEvents();
-            for (const ev of stored) { if (ev.id === id) ev.active = !ev.active; }
+            const ev = stored.find(e => e.id === id);
+            if (ev) ev.active = !ev.active;
             lsSaveEvents(stored);
-            apiCall('/api/events/toggle', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id }),
-            });
+            // Update server via PUT
+            if (ev) {
+                apiCall('/api/events', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ev),
+                });
+            }
             showToast('Mis a jour');
             loadEvents();
         }
@@ -1319,11 +1322,7 @@
         async function deleteEvent(id) {
             if (!confirm('Supprimer ?')) return;
             lsSaveEvents(lsGetEvents().filter(e => e.id !== id));
-            apiCall('/api/events/remove', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id }),
-            });
+            apiCall(`/api/events?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
             showToast('Supprime');
             loadEvents();
         }
