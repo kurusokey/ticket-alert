@@ -841,90 +841,89 @@
 
         /* ── Desktop (960px+) ── */
         @media (min-width: 960px) {
-            .container { max-width: 1200px; padding: 2rem 3rem; }
-            header h1 { font-size: 2.3rem; }
+            .container { max-width: 1100px; padding: 2rem 3rem; }
+            header { padding: 2rem 0 0.5rem; }
+            header h1 { font-size: 2rem; letter-spacing: -0.02em; }
+            header p { font-size: 0.85rem; color: #555; }
+            .auth-user-info { font-size: 0.8rem; text-align: right; margin-bottom: 1.5rem; margin-top: 0; }
 
-            /* 2-column layout: monitor left, events right */
+            /* Full-width stacked layout (no 2-col split) */
             .desktop-layout {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1.5rem;
-                align-items: start;
+                display: flex;
+                flex-direction: column;
+                gap: 2rem;
             }
 
-            /* Monitor fills left column */
-            .monitor-panel {
-                padding: 1.5rem 2rem;
-                border-radius: 20px;
-                margin-bottom: 0;
-                position: sticky;
-                top: 1rem;
-            }
-            .monitor-status-row { font-size: 0.95rem; }
-            .btn-cta { max-width: 100%; font-size: 1.05rem; padding: 1rem; }
+            /* Monitor: full-width hero */
+            .monitor-panel { padding: 2rem 2.5rem; border-radius: 20px; margin-bottom: 0; position: relative; top: auto; }
+            .monitor-status-row { font-size: 1rem; margin-bottom: 1.2rem; gap: 0.75rem; }
+            .monitor-status-text { font-size: 1rem; }
+            .telegram-badge { font-size: 0.75rem; padding: 0.25rem 0.65rem; }
+            .btn-cta { max-width: 380px; margin: 0 auto; padding: 1rem 2rem; font-size: 1.05rem; border-radius: 14px; }
+            .scheduler { margin-top: 1.2rem; padding: 1rem 1.2rem; border-radius: 14px; }
+            .sched-countdown { font-size: 2.2rem; letter-spacing: 3px; }
+
+            /* Stats: mini-cards in 3-col grid */
             .monitor-stats {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 0.8rem;
-                padding-top: 1rem;
-                margin-top: 1rem;
-            }
-            .monitor-stat .val { font-size: 1.3rem; }
-            .sched-countdown { font-size: 2rem; letter-spacing: 3px; }
-            .log-container {
-                max-height: 250px;
-                font-size: 0.78rem;
-                border-radius: 10px;
-            }
-            .log-line .log-msg {
-                word-break: break-word;
-                white-space: normal;
-            }
-
-            /* Events column (right) */
-            .events-column {
-                display: flex;
-                flex-direction: column;
-            }
-            .section-header { margin-bottom: 1rem; }
-            .section-title { font-size: 0.85rem; }
-            .btn-add { padding: 0.5rem 1rem; font-size: 0.85rem; }
-            .events-list {
-                display: flex;
-                flex-direction: column;
-                gap: 0.8rem;
-            }
-            .event-card { padding: 1.3rem 1.5rem; }
-            .event-name { font-size: 1.1rem; }
-            .event-info {
+                gap: 1rem;
+                padding-top: 1.2rem;
+                margin-top: 1.2rem;
                 font-size: 0.85rem;
-                white-space: normal;
-                word-break: break-word;
             }
-            .event-info span { white-space: normal; }
-            .event-actions-row { margin-top: 0.8rem; }
-            .event-actions-row button { padding: 0.6rem; font-size: 0.85rem; border-radius: 10px; }
+            .monitor-stat {
+                background: #0a0a12;
+                border: 1px solid #1a1a2a;
+                border-radius: 12px;
+                padding: 0.8rem 1rem;
+            }
+            .monitor-stat .val { font-size: 1.4rem; }
+            .monitor-stat .lbl { font-size: 0.75rem; margin-top: 0.2rem; }
 
-            /* Form: wider */
-            .form-inner { max-width: 640px; padding: 2rem 2rem 3rem; }
-            .form-header h2 { font-size: 1.2rem; }
-            .form-group input { padding: 0.8rem 1rem; font-size: 1rem; }
-            .btn-submit { padding: 1rem; font-size: 1.05rem; }
+            /* Alerts & Logs: full width, readable */
+            .alert-item { padding: 1rem 1.2rem; border-radius: 12px; margin-top: 0.8rem; font-size: 0.9rem; word-break: break-word; }
+            .log-container { max-height: 280px; font-size: 0.8rem; line-height: 1.8; border-radius: 12px; margin-top: 1rem; }
+            .log-line { padding: 0.25rem 1rem; }
+            .log-line .log-msg { word-break: break-word; white-space: normal; }
+
+            /* Events: 2-col grid of cards */
+            .events-column { display: flex; flex-direction: column; }
+            .section-header { margin-bottom: 1.2rem; }
+            .section-title { font-size: 0.8rem; letter-spacing: 1.5px; }
+            .btn-add { padding: 0.5rem 1.2rem; font-size: 0.85rem; border-radius: 10px; }
+            .events-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+            .event-card { padding: 1.3rem 1.5rem; border-radius: 16px; display: flex; flex-direction: column; }
+            .event-name { font-size: 1.05rem; }
+            .event-info { font-size: 0.82rem; white-space: normal; word-break: break-word; margin-top: 0.6rem; }
+            .event-info span { white-space: normal; }
+            .event-actions-row { margin-top: auto; padding-top: 0.8rem; }
+            .event-actions-row button { padding: 0.55rem 0.5rem; font-size: 0.82rem; border-radius: 10px; }
+            .empty-state { grid-column: 1 / -1; }
+
+            /* History */
+            .history-header { margin-top: 2rem; }
+            .history-container { border-radius: 14px; max-height: 350px; }
+
+            /* Form */
+            .form-inner { max-width: 640px; padding: 2.5rem 2.5rem 3rem; }
+            .form-header h2 { font-size: 1.25rem; }
+            .form-group input { padding: 0.8rem 1rem; font-size: 1rem; border-radius: 12px; }
+            .btn-submit { padding: 1rem; font-size: 1.05rem; max-width: 400px; margin: 0.5rem auto 0; }
 
             /* Auth */
             .auth-box { max-width: 440px; }
-            .auth-box h1 { font-size: 2.3rem; }
-
-            /* Alert items: text wraps */
-            .alert-item { word-break: break-word; }
+            .auth-box h1 { font-size: 2.2rem; letter-spacing: -0.02em; }
         }
 
         /* ── Wide Desktop (1400px+) ── */
         @media (min-width: 1400px) {
-            .container { max-width: 1400px; }
-            .desktop-layout { gap: 2rem; }
-            .monitor-panel { padding: 2rem 2.5rem; }
+            .container { max-width: 1300px; padding: 2.5rem 4rem; }
+            .monitor-panel { padding: 2.5rem 3rem; }
+            .events-list { grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
             .event-card { padding: 1.5rem 1.8rem; }
+            .log-container { max-height: 320px; font-size: 0.82rem; }
+            .monitor-stat .val { font-size: 1.5rem; }
         }
     </style>
 </head>
