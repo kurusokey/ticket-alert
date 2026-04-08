@@ -1,11 +1,11 @@
 /**
- * POST /api/auth — Register or login with a 6-digit PIN code.
+ * POST /api/auth — Login or auto-register with name + 6-digit PIN.
  *
- * Body: { action: "register", name: "Yasuke", pin: "123456" }
- *   → Creates account with chosen PIN
+ * Body: { name: "Yasuke", pin: "123456" }
  *
- * Body: { action: "login", pin: "123456" }
- *   → Verifies PIN exists, returns { pin, name }
+ * - PIN exists + name matches → login
+ * - PIN doesn't exist → create account
+ * - PIN exists + name doesn't match → error
  */
 
 const { jsonResponse, corsHeaders, readBody } = require("./lib");
@@ -25,65 +25,48 @@ module.exports = async function handler(req, res) {
 
   const body = await readBody(req);
   const store = getKV();
+  if (!store) return jsonResponse(res, { ok: false, error: "Storage non disponible" }, 500);
 
-  if (body.action === "register") {
-    const pin = (body.pin || "").trim();
-    const name = (body.name || "").trim() || "Mon compte";
+  const pin = (body.pin || "").trim();
+  const name = (body.name || "").trim();
 
-    if (!/^\d{6}$/.test(pin)) {
-      return jsonResponse(res, { ok: false, error: "Le code PIN doit faire 6 chiffres" }, 400);
+  if (!name) return jsonResponse(res, { ok: false, error: "Prenom requis" }, 400);
+  if (!/^\d{6}$/.test(pin)) return jsonResponse(res, { ok: false, error: "Le code PIN doit faire 6 chiffres" }, 400);
+
+  const existing = await store.get(`user:${pin}`);
+
+  if (existing) {
+    // PIN exists — check name matches
+    if (existing.name.toLowerCase() === name.toLowerCase()) {
+      return jsonResponse(res, { ok: true, pin: existing.pin, name: existing.name, isNew: false });
     }
-
-    if (store) {
-      // Check if PIN already taken
-      const existing = await store.get(`user:${pin}`);
-      if (existing) {
-        return jsonResponse(res, { ok: false, error: "Ce code PIN est deja utilise" }, 409);
-      }
-
-      const user = { pin, name, created: new Date().toISOString() };
-      await store.set(`user:${pin}`, user);
-
-      // Add to all_users list (for cron)
-      try {
-        let allUsers = await store.get("all_users");
-        if (!Array.isArray(allUsers)) allUsers = [];
-        if (!allUsers.includes(pin)) {
-          allUsers.push(pin);
-          await store.set("all_users", allUsers);
-        }
-      } catch {}
-
-      // Migrate data.json events for first user
-      try {
-        const fs = require("fs");
-        const path = require("path");
-        const evFile = path.join(__dirname, "..", "data.json");
-        const existing = JSON.parse(fs.readFileSync(evFile, "utf-8"));
-        if (Array.isArray(existing) && existing.length > 0) {
-          await store.set(`u:${pin}:events`, existing);
-        }
-      } catch {}
-
-      return jsonResponse(res, { ok: true, pin, name });
-    }
-
-    return jsonResponse(res, { ok: false, error: "Storage non disponible" }, 500);
+    return jsonResponse(res, { ok: false, error: "PIN et prenom ne correspondent pas" }, 403);
   }
 
-  if (body.action === "login") {
-    const pin = (body.pin || "").trim();
-    if (!/^\d{6}$/.test(pin)) {
-      return jsonResponse(res, { ok: false, error: "Le code PIN doit faire 6 chiffres" }, 400);
+  // PIN is free — create account
+  const user = { pin, name, created: new Date().toISOString() };
+  await store.set(`user:${pin}`, user);
+
+  // Add to all_users list (for cron)
+  try {
+    let allUsers = await store.get("all_users");
+    if (!Array.isArray(allUsers)) allUsers = [];
+    if (!allUsers.includes(pin)) {
+      allUsers.push(pin);
+      await store.set("all_users", allUsers);
     }
+  } catch {}
 
-    if (store) {
-      const user = await store.get(`user:${pin}`);
-      if (user) return jsonResponse(res, { ok: true, pin: user.pin, name: user.name });
+  // Migrate data.json events for first user
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const evFile = path.join(__dirname, "..", "data.json");
+    const data = JSON.parse(fs.readFileSync(evFile, "utf-8"));
+    if (Array.isArray(data) && data.length > 0) {
+      await store.set(`u:${pin}:events`, data);
     }
+  } catch {}
 
-    return jsonResponse(res, { ok: false, error: "Code PIN introuvable" }, 404);
-  }
-
-  return jsonResponse(res, { error: "Action invalide" }, 400);
+  return jsonResponse(res, { ok: true, pin, name, isNew: true });
 };

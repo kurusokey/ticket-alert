@@ -820,24 +820,14 @@
 <body>
     <!-- ── Auth screen ── -->
     <div class="auth-screen" id="authScreen">
-        <div class="auth-box" id="authLogin">
+        <div class="auth-box" id="authForm">
             <h1>go<span>Find</span>My<span>Tickets</span></h1>
-            <p>Entre ton code PIN</p>
-            <input type="number" id="loginPin" placeholder="000000" maxlength="6" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
+            <p>Connecte-toi ou cree ton compte</p>
+            <input type="text" class="auth-name" id="authName" placeholder="Ton prenom" autocomplete="off">
+            <input type="number" id="authPin" placeholder="Code PIN a 6 chiffres" maxlength="6" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
             <div class="auth-actions">
-                <button class="btn-cta start" onclick="doLogin()">Se connecter</button>
+                <button class="btn-cta start" onclick="doAuth()">Continuer</button>
             </div>
-            <div class="auth-toggle">Pas encore de compte ? <a onclick="showRegister()">Creer un compte</a></div>
-        </div>
-        <div class="auth-box" id="authRegister" style="display:none">
-            <h1>go<span>Find</span>My<span>Tickets</span></h1>
-            <p>Cree ton espace personnel</p>
-            <input type="text" class="auth-name" id="registerName" placeholder="Ton prenom" autocomplete="off">
-            <input type="number" id="registerPin" placeholder="Choisis un code PIN a 6 chiffres" maxlength="6" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
-            <div class="auth-actions">
-                <button class="btn-cta start" onclick="doRegister()">Creer mon compte</button>
-            </div>
-            <div class="auth-toggle"><a onclick="showLogin()">J'ai deja un code PIN</a></div>
         </div>
     </div>
 
@@ -974,50 +964,21 @@
             return auth?.pin ? { 'Authorization': `Bearer ${auth.pin}` } : {};
         }
 
-        function showLogin() {
-            document.getElementById('authLogin').style.display = '';
-            document.getElementById('authRegister').style.display = 'none';
-            document.getElementById('authWelcome').style.display = 'none';
-        }
-
-        function showRegister() {
-            document.getElementById('authLogin').style.display = 'none';
-            document.getElementById('authRegister').style.display = '';
-            document.getElementById('authWelcome').style.display = 'none';
-        }
-
-        async function doLogin() {
-            const pin = document.getElementById('loginPin').value.trim();
+        async function doAuth() {
+            const name = document.getElementById('authName').value.trim();
+            const pin = document.getElementById('authPin').value.trim();
+            if (!name) { showToast('Entre ton prenom', true); return; }
             if (!/^\d{6}$/.test(pin)) { showToast('Le code PIN doit faire 6 chiffres', true); return; }
             try {
                 const res = await fetch(`${API}/api/auth`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'login', pin }),
+                    body: JSON.stringify({ name, pin }),
                 });
                 const data = await res.json();
                 if (data.ok) {
                     setAuth({ pin: data.pin, name: data.name });
-                    finishAuth();
-                } else {
-                    showToast(data.error || 'Code PIN introuvable', true);
-                }
-            } catch { showToast('Erreur de connexion', true); }
-        }
-
-        async function doRegister() {
-            const name = document.getElementById('registerName').value.trim();
-            const pin = document.getElementById('registerPin').value.trim();
-            if (!/^\d{6}$/.test(pin)) { showToast('Le code PIN doit faire 6 chiffres', true); return; }
-            try {
-                const res = await fetch(`${API}/api/auth`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'register', name, pin }),
-                });
-                const data = await res.json();
-                if (data.ok) {
-                    setAuth({ pin: data.pin, name: data.name });
+                    if (data.isNew) showToast('Compte cree');
                     finishAuth();
                 } else {
                     showToast(data.error || 'Erreur', true);
