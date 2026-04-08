@@ -1,14 +1,13 @@
 /**
- * POST /api/auth — Register or login with a sync code.
+ * POST /api/auth — Register or login with a 6-digit PIN code.
  *
- * Body: { action: "register", name: "Yasuke" }
- *   → Creates a new sync code, returns { code, name }
+ * Body: { action: "register", name: "Yasuke", pin: "123456" }
+ *   → Creates account with chosen PIN
  *
- * Body: { action: "login", code: "ABC123" }
- *   → Verifies the code exists, returns { code, name }
+ * Body: { action: "login", pin: "123456" }
+ *   → Verifies PIN exists, returns { pin, name }
  */
 
-const crypto = require("crypto");
 const { jsonResponse, corsHeaders, readBody } = require("./lib");
 
 let kv = null;
@@ -20,11 +19,6 @@ function getKV() {
   return null;
 }
 
-function generateCode() {
-  // 6-char alphanumeric uppercase code
-  return crypto.randomBytes(4).toString("hex").slice(0, 6).toUpperCase();
-}
-
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") { corsHeaders(res); res.statusCode = 200; return res.end(); }
   if (req.method !== "POST") return jsonResponse(res, { error: "POST only" }, 405);
@@ -33,21 +27,33 @@ module.exports = async function handler(req, res) {
   const store = getKV();
 
   if (body.action === "register") {
-    const code = generateCode();
+    const pin = (body.pin || "").trim();
     const name = (body.name || "").trim() || "Mon compte";
-    const user = { code, name, created: new Date().toISOString() };
+
+    if (!/^\d{6}$/.test(pin)) {
+      return jsonResponse(res, { ok: false, error: "Le code PIN doit faire 6 chiffres" }, 400);
+    }
 
     if (store) {
-      await store.set(`user:${code}`, user);
+      // Check if PIN already taken
+      const existing = await store.get(`user:${pin}`);
+      if (existing) {
+        return jsonResponse(res, { ok: false, error: "Ce code PIN est deja utilise" }, 409);
+      }
+
+      const user = { pin, name, created: new Date().toISOString() };
+      await store.set(`user:${pin}`, user);
+
       // Add to all_users list (for cron)
       try {
         let allUsers = await store.get("all_users");
         if (!Array.isArray(allUsers)) allUsers = [];
-        if (!allUsers.includes(code)) {
-          allUsers.push(code);
+        if (!allUsers.includes(pin)) {
+          allUsers.push(pin);
           await store.set("all_users", allUsers);
         }
       } catch {}
+
       // Migrate data.json events for first user
       try {
         const fs = require("fs");
@@ -55,24 +61,28 @@ module.exports = async function handler(req, res) {
         const evFile = path.join(__dirname, "..", "data.json");
         const existing = JSON.parse(fs.readFileSync(evFile, "utf-8"));
         if (Array.isArray(existing) && existing.length > 0) {
-          await store.set(`u:${code}:events`, existing);
+          await store.set(`u:${pin}:events`, existing);
         }
       } catch {}
+
+      return jsonResponse(res, { ok: true, pin, name });
     }
 
-    return jsonResponse(res, { ok: true, code, name });
+    return jsonResponse(res, { ok: false, error: "Storage non disponible" }, 500);
   }
 
   if (body.action === "login") {
-    const code = (body.code || "").trim().toUpperCase();
-    if (!code || code.length < 4) return jsonResponse(res, { ok: false, error: "Code invalide" }, 400);
-
-    if (store) {
-      const user = await store.get(`user:${code}`);
-      if (user) return jsonResponse(res, { ok: true, code: user.code, name: user.name });
+    const pin = (body.pin || "").trim();
+    if (!/^\d{6}$/.test(pin)) {
+      return jsonResponse(res, { ok: false, error: "Le code PIN doit faire 6 chiffres" }, 400);
     }
 
-    return jsonResponse(res, { ok: false, error: "Code introuvable" }, 404);
+    if (store) {
+      const user = await store.get(`user:${pin}`);
+      if (user) return jsonResponse(res, { ok: true, pin: user.pin, name: user.name });
+    }
+
+    return jsonResponse(res, { ok: false, error: "Code PIN introuvable" }, 404);
   }
 
   return jsonResponse(res, { error: "Action invalide" }, 400);

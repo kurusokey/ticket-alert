@@ -822,8 +822,8 @@
     <div class="auth-screen" id="authScreen">
         <div class="auth-box" id="authLogin">
             <h1>go<span>Find</span>My<span>Tickets</span></h1>
-            <p>Entre ton code de synchronisation</p>
-            <input type="text" id="loginCode" placeholder="ABC123" maxlength="6" autocomplete="off" autocapitalize="characters">
+            <p>Entre ton code PIN</p>
+            <input type="number" id="loginPin" placeholder="000000" maxlength="6" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
             <div class="auth-actions">
                 <button class="btn-cta start" onclick="doLogin()">Se connecter</button>
             </div>
@@ -833,21 +833,11 @@
             <h1>go<span>Find</span>My<span>Tickets</span></h1>
             <p>Cree ton espace personnel</p>
             <input type="text" class="auth-name" id="registerName" placeholder="Ton prenom" autocomplete="off">
+            <input type="number" id="registerPin" placeholder="Choisis un code PIN a 6 chiffres" maxlength="6" pattern="[0-9]*" inputmode="numeric" autocomplete="off">
             <div class="auth-actions">
                 <button class="btn-cta start" onclick="doRegister()">Creer mon compte</button>
             </div>
-            <div class="auth-toggle"><a onclick="showLogin()">J'ai deja un code</a></div>
-        </div>
-        <div class="auth-box" id="authWelcome" style="display:none">
-            <h1>Bienvenue !</h1>
-            <p>Voici ton code de synchronisation. Note-le pour te connecter sur un autre appareil.</p>
-            <div class="auth-code-display">
-                <div class="code" id="welcomeCode"></div>
-                <div class="hint">Ce code est ta cle d'acces</div>
-            </div>
-            <div class="auth-actions">
-                <button class="btn-cta start" onclick="finishAuth()">C'est note, continuer</button>
-            </div>
+            <div class="auth-toggle"><a onclick="showLogin()">J'ai deja un code PIN</a></div>
         </div>
     </div>
 
@@ -981,7 +971,7 @@
 
         function authHeaders() {
             const auth = getAuth();
-            return auth?.code ? { 'Authorization': `Bearer ${auth.code}` } : {};
+            return auth?.pin ? { 'Authorization': `Bearer ${auth.pin}` } : {};
         }
 
         function showLogin() {
@@ -997,41 +987,40 @@
         }
 
         async function doLogin() {
-            const code = document.getElementById('loginCode').value.trim().toUpperCase();
-            if (!code) { showToast('Entre ton code', true); return; }
+            const pin = document.getElementById('loginPin').value.trim();
+            if (!/^\d{6}$/.test(pin)) { showToast('Le code PIN doit faire 6 chiffres', true); return; }
             try {
                 const res = await fetch(`${API}/api/auth`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'login', code }),
+                    body: JSON.stringify({ action: 'login', pin }),
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    setAuth({ code: data.code, name: data.name });
+                    setAuth({ pin: data.pin, name: data.name });
                     finishAuth();
                 } else {
-                    showToast(data.error || 'Code introuvable', true);
+                    showToast(data.error || 'Code PIN introuvable', true);
                 }
             } catch { showToast('Erreur de connexion', true); }
         }
 
         async function doRegister() {
             const name = document.getElementById('registerName').value.trim();
+            const pin = document.getElementById('registerPin').value.trim();
+            if (!/^\d{6}$/.test(pin)) { showToast('Le code PIN doit faire 6 chiffres', true); return; }
             try {
                 const res = await fetch(`${API}/api/auth`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'register', name }),
+                    body: JSON.stringify({ action: 'register', name, pin }),
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    setAuth({ code: data.code, name: data.name });
-                    document.getElementById('welcomeCode').textContent = data.code;
-                    document.getElementById('authLogin').style.display = 'none';
-                    document.getElementById('authRegister').style.display = 'none';
-                    document.getElementById('authWelcome').style.display = '';
+                    setAuth({ pin: data.pin, name: data.name });
+                    finishAuth();
                 } else {
-                    showToast('Erreur', true);
+                    showToast(data.error || 'Erreur', true);
                 }
             } catch { showToast('Erreur de connexion', true); }
         }
@@ -1042,7 +1031,7 @@
             const auth = getAuth();
             if (auth) {
                 document.getElementById('userInfo').innerHTML =
-                    `${esc(auth.name || '')} &mdash; <code>${auth.code}</code> &mdash; <a onclick="logout()">Deconnexion</a>`;
+                    `${esc(auth.name || '')} &mdash; <a onclick="logout()">Deconnexion</a>`;
             }
             initApp();
         }
@@ -1054,7 +1043,7 @@
 
         function checkAuth() {
             const auth = getAuth();
-            if (auth?.code) {
+            if (auth?.pin) {
                 finishAuth();
             } else {
                 document.getElementById('authScreen').classList.remove('hidden');
