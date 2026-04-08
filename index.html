@@ -757,13 +757,17 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Date concert</label>
-                        <input type="date" id="eventDate">
+                        <label>Date debut</label>
+                        <input type="date" id="eventDateStart">
                     </div>
                     <div class="form-group">
-                        <label>Ouverture vente</label>
-                        <input type="datetime-local" id="eventSaleDate">
+                        <label>Date fin (optionnel)</label>
+                        <input type="date" id="eventDateEnd">
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>Ouverture vente</label>
+                    <input type="datetime-local" id="eventSaleDate">
                 </div>
                 <div class="form-group" id="urlsGroup">
                     <label>URLs a surveiller</label>
@@ -1152,7 +1156,7 @@
                 const bt = ev.active ? 'Actif' : 'Pause';
                 const cc = ev.active ? '' : 'inactive';
                 const sd = ev.sale_date ? fmtDate(ev.sale_date) : '';
-                const ed = ev.date ? fmtDate(ev.date) : '';
+                const ed = ev.date_start ? (ev.date_end ? fmtDate(ev.date_start) + ' → ' + fmtDate(ev.date_end) : fmtDate(ev.date_start)) : (ev.date ? fmtDate(ev.date) : '');
                 const urls = getEventUrls(ev);
                 let urlsHtml = '';
                 for (const u of urls) {
@@ -1249,7 +1253,8 @@
             editingId = id;
             document.getElementById('eventName').value = ev.name || '';
             document.getElementById('eventVenue').value = ev.venue || '';
-            document.getElementById('eventDate').value = ev.date || '';
+            document.getElementById('eventDateStart').value = ev.date_start || ev.date || '';
+            document.getElementById('eventDateEnd').value = ev.date_end || '';
             document.getElementById('eventSaleDate').value = (ev.sale_date || '').replace(' ', 'T');
             document.getElementById('eventMarker').value = ev.closed_marker || '';
             // Populate URL fields
@@ -1275,7 +1280,8 @@
                 id: editingId || slugify(name) + '-' + Date.now().toString(36),
                 name,
                 venue: document.getElementById('eventVenue').value.trim(),
-                date: document.getElementById('eventDate').value || null,
+                date_start: document.getElementById('eventDateStart').value || null,
+                date_end: document.getElementById('eventDateEnd').value || null,
                 sale_date: document.getElementById('eventSaleDate').value ? document.getElementById('eventSaleDate').value.replace('T', ' ') : null,
                 urls,
                 url: urls[0].url, // backward compat: keep first URL as `url`
@@ -1343,7 +1349,7 @@
         }
 
         function clearFormFields() {
-            ['eventName','eventVenue','eventDate','eventSaleDate','eventMarker']
+            ['eventName','eventVenue','eventDateStart','eventDateEnd','eventSaleDate','eventMarker']
                 .forEach(id => document.getElementById(id).value = '');
             document.getElementById('urlsList').innerHTML = '';
             urlFieldCount = 0;
