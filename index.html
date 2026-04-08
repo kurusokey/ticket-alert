@@ -23,7 +23,7 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 1rem;
         }
@@ -807,13 +807,30 @@
             text-decoration: none;
         }
 
-        /* ── Desktop ── */
+        /* ── Tablet ── */
         @media (min-width: 640px) {
             .container { padding: 2rem 1.5rem; }
             header h1 { font-size: 1.8rem; }
-            .btn-cta { max-width: 340px; margin: 0 auto; }
+            .btn-cta { max-width: 400px; margin: 0 auto; }
             .event-card { padding: 1.2rem 1.5rem; }
             .sched-countdown { font-size: 2rem; }
+            .events-list { gap: 0.8rem; }
+        }
+
+        /* ── Desktop ── */
+        @media (min-width: 960px) {
+            .container { padding: 2rem 3rem; }
+            header h1 { font-size: 2rem; }
+            .monitor-panel { padding: 1.5rem 2rem; }
+            .events-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+                gap: 1rem;
+            }
+            .event-card { padding: 1.5rem; }
+            .form-inner { max-width: 600px; }
+            .auth-box { max-width: 420px; }
+            .log-container { max-height: 250px; }
         }
     </style>
 </head>
@@ -1038,22 +1055,39 @@
             return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
         }
 
+        function isIOSSafari() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        }
+
+        function isStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+        }
+
         async function togglePush() {
-            if (!('PushManager' in window)) { showToast('Push non supporte', true); return; }
+            if (!('PushManager' in window)) {
+                if (isIOSSafari() && !isStandalone()) {
+                    showToast('Sur iPhone, installe l\'app d\'abord : Partager → Sur l\'ecran d\'accueil', true);
+                } else if (isIOSSafari()) {
+                    showToast('Push non disponible sur cette version d\'iOS', true);
+                } else {
+                    showToast('Push non supporte par ce navigateur', true);
+                }
+                return;
+            }
             const reg = await navigator.serviceWorker.ready;
             const existing = await reg.pushManager.getSubscription();
             if (existing) {
                 await existing.unsubscribe();
-                await fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: existing.endpoint }) }).catch(() => {});
+                await fetch('/api/push/unsubscribe', { method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: existing.endpoint }) }).catch(() => {});
                 document.getElementById('pushBadge').textContent = 'Push off';
                 document.getElementById('pushBadge').classList.remove('on');
                 showToast('Push desactive');
             } else {
                 try {
-                    const vapidRes = await fetch('/api/push/vapid');
+                    const vapidRes = await fetch('/api/push/vapid', { headers: authHeaders() });
                     const { publicKey } = await vapidRes.json();
                     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
-                    await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+                    await fetch('/api/push/subscribe', { method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
                     document.getElementById('pushBadge').textContent = 'Push on';
                     document.getElementById('pushBadge').classList.add('on');
                     showToast('Push active');
