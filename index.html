@@ -318,6 +318,36 @@
             font-size: 0.9rem;
         }
 
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem 0 0.5rem;
+            grid-column: 1 / -1;
+        }
+
+        .page-btn {
+            background: #111118;
+            border: 1px solid #2a2a3a;
+            color: #ccc;
+            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .page-btn:active { background: #1a1a2a; border-color: #f97316; }
+        .page-btn:disabled { opacity: 0.3; cursor: default; }
+
+        .page-info {
+            font-size: 0.85rem;
+            color: #666;
+            font-variant-numeric: tabular-nums;
+        }
+
         /* ── Form (modal overlay on mobile) ── */
         .form-overlay {
             display: none;
@@ -1529,6 +1559,9 @@
             return [];
         }
 
+        const EVENTS_PER_PAGE = 10;
+        let currentPage = 0;
+
         function renderEvents() {
             const list = document.getElementById('eventsList');
             if (events.length === 0) {
@@ -1536,7 +1569,13 @@
                 return;
             }
 
-            list.innerHTML = events.map(ev => {
+            const totalPages = Math.ceil(events.length / EVENTS_PER_PAGE);
+            if (currentPage >= totalPages) currentPage = totalPages - 1;
+            if (currentPage < 0) currentPage = 0;
+            const start = currentPage * EVENTS_PER_PAGE;
+            const pageEvents = events.slice(start, start + EVENTS_PER_PAGE);
+
+            let html = pageEvents.map(ev => {
                 const bc = ev.active ? 'badge-active' : 'badge-paused';
                 const bt = ev.active ? 'Actif' : 'Pause';
                 const cc = ev.active ? '' : 'inactive';
@@ -1572,6 +1611,23 @@
                         </div>
                     </div>`;
             }).join('');
+
+            // Pagination
+            if (totalPages > 1) {
+                html += `<div class="pagination">
+                    <button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>←</button>
+                    <span class="page-info">${currentPage + 1} / ${totalPages}</span>
+                    <button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>→</button>
+                </div>`;
+            }
+
+            list.innerHTML = html;
+        }
+
+        function goPage(page) {
+            currentPage = page;
+            renderEvents();
+            document.getElementById('eventsList').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // ══════════════════════════════════════
