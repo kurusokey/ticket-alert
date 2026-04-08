@@ -994,6 +994,14 @@
                 document.getElementById('userInfo').innerHTML =
                     `${esc(auth.name || '')} &mdash; <a onclick="logout()">Deconnexion</a>`;
             }
+            // Nettoyer le vieux state monitor local (alertes/logs d'anciennes sessions)
+            const mon = getMonState();
+            if (mon.alerts?.length || mon.logs?.length) {
+                mon.alerts = [];
+                mon.logs = [];
+                mon.last_results = [];
+                setMonState(mon);
+            }
             initApp();
         }
 
