@@ -82,12 +82,11 @@ module.exports = async function handler(req, res) {
           continue;
         }
 
-        // Check for alerts
-        const shouldAlert =
-          result.status === "OPEN" ||
-          result.status === "CHANGED" ||
-          result.newLinks.length > 0 ||
-          result.contentChanged;
+        // Check for alerts — only if status CHANGED since last baseline
+        const prevStatus = baseline.status || "CLOSED";
+        const isNewOpen = result.status === "OPEN" && prevStatus !== "OPEN";
+        const isNewChange = result.status === "CHANGED" && (result.newLinks.length > 0 || result.contentChanged);
+        const shouldAlert = isNewOpen || isNewChange;
 
         if (shouldAlert && result.status !== "ERROR") {
           // Telegram alert
@@ -116,11 +115,12 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        // Update baseline
+        // Update baseline (include status to avoid re-alerting)
         if (result.md5) {
           await saveBaseline(userId, eventId, urlIdx, {
             md5: result.md5,
             links: result.links,
+            status: result.status,
             savedAt: now,
           });
         }
