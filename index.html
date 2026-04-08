@@ -617,7 +617,6 @@
             align-items: center;
         }
         .date-entry input {
-            flex: 1;
             background: #111118;
             border: 1px solid #2a2a3a;
             border-radius: 10px;
@@ -626,6 +625,12 @@
             font-size: 0.9rem;
             outline: none;
             -webkit-appearance: none;
+        }
+        .date-entry .date-input { flex: 1; }
+        .date-entry .tickets-input {
+            width: 4.5rem;
+            text-align: center;
+            flex-shrink: 0;
         }
         .date-entry input:focus { border-color: #f97316; }
 
@@ -1153,19 +1158,27 @@
         }
 
         function getEventDates(ev) {
-            // Support: dates[] (new), date_start/date_end (v1), date (legacy)
-            if (ev.dates && Array.isArray(ev.dates) && ev.dates.length > 0) return ev.dates;
-            if (ev.date_start) return ev.date_end ? [ev.date_start, ev.date_end] : [ev.date_start];
-            if (ev.date) return [ev.date];
+            // Support: dates[] of objects (v2), dates[] of strings (v1), date_start/date_end, date (legacy)
+            if (ev.dates && Array.isArray(ev.dates) && ev.dates.length > 0) {
+                return ev.dates.map(d => typeof d === 'string' ? { date: d, tickets: null } : d);
+            }
+            if (ev.date_start) {
+                const arr = [{ date: ev.date_start, tickets: null }];
+                if (ev.date_end) arr.push({ date: ev.date_end, tickets: null });
+                return arr;
+            }
+            if (ev.date) return [{ date: ev.date, tickets: null }];
             return [];
         }
 
         function fmtDates(ev) {
             const dates = getEventDates(ev);
             if (dates.length === 0) return '';
-            if (dates.length === 1) return fmtDate(dates[0]);
-            if (dates.length === 2) return fmtDate(dates[0]) + ' → ' + fmtDate(dates[1]);
-            return dates.map(d => fmtDate(d)).join(' · ');
+            return dates.map(d => {
+                let s = fmtDate(d.date);
+                if (d.tickets) s += ` (${d.tickets} place${d.tickets > 1 ? 's' : ''})`;
+                return s;
+            }).join(' · ');
         }
 
         function getEventUrls(ev) {
@@ -1269,7 +1282,7 @@
 
         let dateFieldCount = 0;
 
-        function addDateField(val) {
+        function addDateField(val, tickets) {
             dateFieldCount++;
             const id = 'dateEntry_' + dateFieldCount;
             const container = document.getElementById('datesList');
@@ -1278,6 +1291,7 @@
             div.id = id;
             div.innerHTML = `
                 <input type="date" class="date-input" value="${val || ''}">
+                <input type="number" class="tickets-input" min="1" max="99" placeholder="Nb" value="${tickets || ''}" title="Nombre de places">
                 <button type="button" class="btn-remove-url" onclick="removeDateField('${id}')">&times;</button>
             `;
             container.appendChild(div);
@@ -1290,12 +1304,14 @@
         }
 
         function getFormDates() {
-            const entries = document.querySelectorAll('#datesList .date-input');
+            const entries = document.querySelectorAll('#datesList .date-entry');
             const dates = [];
-            entries.forEach(input => {
-                if (input.value) dates.push(input.value);
+            entries.forEach(entry => {
+                const d = entry.querySelector('.date-input')?.value;
+                const t = parseInt(entry.querySelector('.tickets-input')?.value) || null;
+                if (d) dates.push({ date: d, tickets: t });
             });
-            dates.sort();
+            dates.sort((a, b) => a.date.localeCompare(b.date));
             return dates;
         }
 
@@ -1322,7 +1338,7 @@
             document.getElementById('datesList').innerHTML = '';
             dateFieldCount = 0;
             const dates = getEventDates(ev);
-            if (dates.length === 0) { addDateField(); } else { for (const d of dates) addDateField(d); }
+            if (dates.length === 0) { addDateField(); } else { for (const d of dates) addDateField(d.date, d.tickets); }
             document.getElementById('eventSaleDate').value = (ev.sale_date || '').replace(' ', 'T');
             document.getElementById('eventMarker').value = ev.closed_marker || '';
             // Populate URL fields
