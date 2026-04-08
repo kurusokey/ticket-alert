@@ -6,6 +6,7 @@ const {
   jsonResponse,
   corsHeaders,
   readBody,
+  getUserId,
   removePushSub,
 } = require("../lib");
 
@@ -21,6 +22,8 @@ module.exports = async function handler(req, res) {
     return jsonResponse(res, { error: "Method not allowed" }, 405);
   }
 
+  const userId = getUserId(req);
+
   try {
     const body = await readBody(req);
 
@@ -28,7 +31,7 @@ module.exports = async function handler(req, res) {
       return jsonResponse(res, { error: "Missing endpoint" }, 400);
     }
 
-    await removePushSub(body.endpoint);
+    await removePushSub(userId, body.endpoint);
     return jsonResponse(res, { ok: true });
   } catch (err) {
     return jsonResponse(res, { error: err.message }, 500);

@@ -7,6 +7,7 @@
 const {
   jsonResponse,
   corsHeaders,
+  getUserId,
   getEvents,
   getStatus,
   saveStatus,
@@ -25,8 +26,10 @@ module.exports = async function handler(req, res) {
     return jsonResponse(res, { error: "Method not allowed" }, 405);
   }
 
+  const userId = getUserId(req);
+
   try {
-    const status = await getStatus();
+    const status = await getStatus(userId);
 
     if (status.running) {
       return jsonResponse(res, { ok: false, message: "Deja en cours" });
@@ -42,10 +45,10 @@ module.exports = async function handler(req, res) {
     status.alerts = [];
     status.last_results = [];
 
-    await saveStatus(status);
+    await saveStatus(userId, status);
 
     // Telegram notification
-    const events = await getEvents();
+    const events = await getEvents(userId);
     const activeNames = events
       .filter((ev) => ev.active !== false)
       .map((ev) => ev.name)

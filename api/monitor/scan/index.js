@@ -6,6 +6,7 @@
  */
 
 const {
+  getUserId,
   getEvents,
   getStatus,
   saveStatus,
@@ -27,8 +28,10 @@ module.exports = async function handler(req, res) {
     return res.end();
   }
 
+  const userId = getUserId(req);
+
   try {
-    const events = await getEvents();
+    const events = await getEvents(userId);
     const active = events.filter((ev) => ev.active !== false);
 
     if (!active.length) {
@@ -53,14 +56,14 @@ module.exports = async function handler(req, res) {
         const url = urls[urlIdx];
 
         // Load baseline for this url
-        const baseline = await getBaseline(eventId, urlIdx);
+        const baseline = await getBaseline(userId, eventId, urlIdx);
 
         // Run 3-layer detection
         const result = await checkUrl(url, closedMarker, baseline);
 
         // First run: save baseline, no alert
         if (!baseline) {
-          await saveBaseline(eventId, urlIdx, {
+          await saveBaseline(userId, eventId, urlIdx, {
             md5: result.md5,
             links: result.links,
             savedAt: now,
@@ -97,7 +100,7 @@ module.exports = async function handler(req, res) {
           await sendTelegram(tgMsg);
 
           // Web Push
-          await sendWebPush(
+          await sendWebPush(userId,
             result.status === "OPEN" ? "BILLETTERIE OUVERTE !" : "Changement detecte !",
             `${name} — ${result.detail}`,
             result.ticketUrl || url
@@ -114,7 +117,7 @@ module.exports = async function handler(req, res) {
 
         // Update baseline
         if (result.md5) {
-          await saveBaseline(eventId, urlIdx, {
+          await saveBaseline(userId, eventId, urlIdx, {
             md5: result.md5,
             links: result.links,
             savedAt: now,
@@ -122,7 +125,7 @@ module.exports = async function handler(req, res) {
         }
 
         // Append to history
-        await appendHistory(eventId, {
+        await appendHistory(userId, eventId, {
           time: now,
           timeStr,
           url,
@@ -149,7 +152,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Update status with scan results
-    const status = await getStatus();
+    const status = await getStatus(userId);
     status.check_count = (status.check_count || 0) + 1;
     status.last_check = now;
     status.last_results = results;
@@ -166,7 +169,7 @@ module.exports = async function handler(req, res) {
       });
     }
     status.logs = status.logs.slice(-200);
-    await saveStatus(status);
+    await saveStatus(userId, status);
 
     return jsonResponse(res, {
       ok: true,

@@ -12,6 +12,7 @@ const {
   jsonResponse,
   corsHeaders,
   readBody,
+  getUserId,
   getEvents,
   saveEvents,
 } = require("../lib");
@@ -24,23 +25,25 @@ module.exports = async function handler(req, res) {
     return res.end();
   }
 
+  const userId = getUserId(req);
+
   try {
     if (req.method === "GET") {
-      const events = await getEvents();
+      const events = await getEvents(userId);
       return jsonResponse(res, events);
     }
 
     if (req.method === "POST") {
       const body = await readBody(req);
-      const events = await getEvents();
+      const events = await getEvents(userId);
       events.push(body);
-      await saveEvents(events);
+      await saveEvents(userId, events);
       return jsonResponse(res, { ok: true });
     }
 
     if (req.method === "PUT") {
       const body = await readBody(req);
-      const events = await getEvents();
+      const events = await getEvents(userId);
       let updated = false;
       for (let i = 0; i < events.length; i++) {
         if (events[i].id === body.id) {
@@ -52,7 +55,7 @@ module.exports = async function handler(req, res) {
       if (!updated) {
         events.push(body);
       }
-      await saveEvents(events);
+      await saveEvents(userId, events);
       return jsonResponse(res, { ok: true });
     }
 
@@ -71,9 +74,9 @@ module.exports = async function handler(req, res) {
         return jsonResponse(res, { error: "Missing event id" }, 400);
       }
 
-      const events = await getEvents();
+      const events = await getEvents(userId);
       const filtered = events.filter((ev) => ev.id !== eventId);
-      await saveEvents(filtered);
+      await saveEvents(userId, filtered);
       return jsonResponse(res, { ok: true });
     }
 

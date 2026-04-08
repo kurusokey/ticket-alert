@@ -688,6 +688,125 @@
         .history-event { color: #888; font-weight: 500; }
         .history-detail { color: #555; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+        /* ── Auth screen ── */
+        .auth-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: #0a0a0f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .auth-screen.hidden { display: none; }
+
+        .auth-box {
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .auth-box h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        .auth-box h1 span { color: #f97316; }
+
+        .auth-box p {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-box input {
+            display: block;
+            width: 100%;
+            background: #111118;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            color: #e0e0e0;
+            font-size: 1rem;
+            outline: none;
+            text-align: center;
+            letter-spacing: 3px;
+            font-weight: 600;
+            margin-bottom: 0.7rem;
+            -webkit-appearance: none;
+        }
+
+        .auth-box input:focus { border-color: #f97316; }
+        .auth-box input::placeholder { color: #3a3a4a; letter-spacing: 0; font-weight: 400; }
+
+        .auth-box .auth-name {
+            letter-spacing: 0;
+            font-weight: 400;
+            text-align: left;
+            margin-bottom: 0.7rem;
+        }
+
+        .auth-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.3rem;
+        }
+
+        .auth-actions .btn-cta { font-size: 0.95rem; padding: 0.85rem; }
+
+        .auth-code-display {
+            background: #111118;
+            border: 1px solid #f9731644;
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .auth-code-display .code {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 6px;
+            color: #f97316;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .auth-code-display .hint {
+            font-size: 0.78rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+
+        .auth-toggle {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #555;
+        }
+
+        .auth-toggle a {
+            color: #f97316;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .auth-user-info {
+            font-size: 0.75rem;
+            color: #555;
+            text-align: center;
+            margin-top: -0.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .auth-user-info a {
+            color: #f97316;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
         /* ── Desktop ── */
         @media (min-width: 640px) {
             .container { padding: 2rem 1.5rem; }
@@ -699,11 +818,45 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- ── Auth screen ── -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-box" id="authLogin">
+            <h1>go<span>Find</span>My<span>Tickets</span></h1>
+            <p>Entre ton code de synchronisation</p>
+            <input type="text" id="loginCode" placeholder="ABC123" maxlength="6" autocomplete="off" autocapitalize="characters">
+            <div class="auth-actions">
+                <button class="btn-cta start" onclick="doLogin()">Se connecter</button>
+            </div>
+            <div class="auth-toggle">Pas encore de compte ? <a onclick="showRegister()">Creer un compte</a></div>
+        </div>
+        <div class="auth-box" id="authRegister" style="display:none">
+            <h1>go<span>Find</span>My<span>Tickets</span></h1>
+            <p>Cree ton espace personnel</p>
+            <input type="text" class="auth-name" id="registerName" placeholder="Ton prenom" autocomplete="off">
+            <div class="auth-actions">
+                <button class="btn-cta start" onclick="doRegister()">Creer mon compte</button>
+            </div>
+            <div class="auth-toggle"><a onclick="showLogin()">J'ai deja un code</a></div>
+        </div>
+        <div class="auth-box" id="authWelcome" style="display:none">
+            <h1>Bienvenue !</h1>
+            <p>Voici ton code de synchronisation. Note-le pour te connecter sur un autre appareil.</p>
+            <div class="auth-code-display">
+                <div class="code" id="welcomeCode"></div>
+                <div class="hint">Ce code est ta cle d'acces</div>
+            </div>
+            <div class="auth-actions">
+                <button class="btn-cta start" onclick="finishAuth()">C'est note, continuer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainApp" style="display:none">
         <header>
             <h1>go<span>Find</span>My<span>Tickets</span></h1>
             <p>Surveillance billetterie + Telegram</p>
         </header>
+        <div class="auth-user-info" id="userInfo"></div>
 
         <!-- ── Monitor ── -->
         <div class="monitor-panel" id="monitorPanel">
@@ -808,9 +961,106 @@
 
     <script>
         const API = '';
+        const AUTH_KEY = 'gfmt_auth';
         let events = [];
         let editingId = null;
         let pollInterval = null;
+
+        // ══════════════════════════════════════
+        // AUTH
+        // ══════════════════════════════════════
+
+        function getAuth() {
+            try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || null; }
+            catch { return null; }
+        }
+
+        function setAuth(data) {
+            localStorage.setItem(AUTH_KEY, JSON.stringify(data));
+        }
+
+        function authHeaders() {
+            const auth = getAuth();
+            return auth?.code ? { 'Authorization': `Bearer ${auth.code}` } : {};
+        }
+
+        function showLogin() {
+            document.getElementById('authLogin').style.display = '';
+            document.getElementById('authRegister').style.display = 'none';
+            document.getElementById('authWelcome').style.display = 'none';
+        }
+
+        function showRegister() {
+            document.getElementById('authLogin').style.display = 'none';
+            document.getElementById('authRegister').style.display = '';
+            document.getElementById('authWelcome').style.display = 'none';
+        }
+
+        async function doLogin() {
+            const code = document.getElementById('loginCode').value.trim().toUpperCase();
+            if (!code) { showToast('Entre ton code', true); return; }
+            try {
+                const res = await fetch(`${API}/api/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'login', code }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    setAuth({ code: data.code, name: data.name });
+                    finishAuth();
+                } else {
+                    showToast(data.error || 'Code introuvable', true);
+                }
+            } catch { showToast('Erreur de connexion', true); }
+        }
+
+        async function doRegister() {
+            const name = document.getElementById('registerName').value.trim();
+            try {
+                const res = await fetch(`${API}/api/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'register', name }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    setAuth({ code: data.code, name: data.name });
+                    document.getElementById('welcomeCode').textContent = data.code;
+                    document.getElementById('authLogin').style.display = 'none';
+                    document.getElementById('authRegister').style.display = 'none';
+                    document.getElementById('authWelcome').style.display = '';
+                } else {
+                    showToast('Erreur', true);
+                }
+            } catch { showToast('Erreur de connexion', true); }
+        }
+
+        function finishAuth() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('mainApp').style.display = '';
+            const auth = getAuth();
+            if (auth) {
+                document.getElementById('userInfo').innerHTML =
+                    `${esc(auth.name || '')} &mdash; <code>${auth.code}</code> &mdash; <a onclick="logout()">Deconnexion</a>`;
+            }
+            initApp();
+        }
+
+        function logout() {
+            localStorage.removeItem(AUTH_KEY);
+            location.reload();
+        }
+
+        function checkAuth() {
+            const auth = getAuth();
+            if (auth?.code) {
+                finishAuth();
+            } else {
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('mainApp').style.display = 'none';
+            }
+        }
         let statusInterval = null;
 
         const MON_KEY = 'gfmt_monitor';
@@ -912,7 +1162,7 @@
             startPolling();
             startStatusPolling();
             // Also try server-side start (best effort)
-            fetch(`${API}/api/monitor/start`, { method: 'POST' }).catch(() => {});
+            fetch(`${API}/api/monitor/start`, { method: 'POST', headers: authHeaders() }).catch(() => {});
         }
 
         function stopMonitor() {
@@ -923,7 +1173,7 @@
             stopStatusPolling();
             showToast('Surveillance arretee');
             renderMonitorUI();
-            fetch(`${API}/api/monitor/stop`, { method: 'POST' }).catch(() => {});
+            fetch(`${API}/api/monitor/stop`, { method: 'POST', headers: authHeaders() }).catch(() => {});
         }
 
         async function doCheck() {
@@ -933,7 +1183,7 @@
             const now = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
             try {
-                const res = await fetch(`${API}/api/monitor/scan`);
+                const res = await fetch(`${API}/api/monitor/scan`, { headers: authHeaders() });
                 const data = await res.json();
 
                 state.check_count = (state.check_count || 0) + 1;
@@ -973,7 +1223,7 @@
         // Lightweight status polling (reads server KV, no scan)
         async function pollStatus() {
             try {
-                const res = await fetch(`${API}/api/monitor/status`);
+                const res = await fetch(`${API}/api/monitor/status`, { headers: authHeaders() });
                 const data = await res.json();
                 if (data && data.check_count !== undefined) {
                     const state = getMonState();
@@ -1131,6 +1381,7 @@
 
         async function apiCall(path, opts = {}) {
             try {
+                opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
                 const res = await fetch(`${API}${path}`, opts);
                 if (res.ok) return await res.json();
             } catch {}
@@ -1460,7 +1711,7 @@
         async function loadHistory() {
             const container = document.getElementById('historyContainer');
             try {
-                const res = await fetch(`${API}/api/monitor/history`);
+                const res = await fetch(`${API}/api/monitor/history`, { headers: authHeaders() });
                 const data = await res.json();
                 if (data && Array.isArray(data) && data.length > 0) {
                     container.innerHTML = data.map(h => {
@@ -1616,19 +1867,20 @@
         // INIT
         // ══════════════════════════════════════
 
-        loadEvents();
-        restoreSchedule();
-        restorePushState();
-
-        // Restore monitor state from localStorage
-        (() => {
+        function initApp() {
+            loadEvents();
+            restoreSchedule();
+            restorePushState();
             const state = getMonState();
             renderMonitorUI();
             if (state.running) {
                 startPolling();
                 startStatusPolling();
             }
-        })();
+        }
+
+        // Entry point: check auth first
+        checkAuth();
     </script>
 </body>
 </html>

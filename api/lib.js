@@ -121,14 +121,28 @@ function readBody(req) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// KV STORAGE — with graceful fallback
+// AUTH — extract userId from request
 // ═══════════════════════════════════════════════════════════
 
-async function getEvents() {
+function getUserId(req) {
+  // Read from Authorization header: "Bearer <code>"
+  const auth = (req.headers?.authorization || "").replace("Bearer ", "").trim();
+  return auth || null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// KV STORAGE — user-scoped with graceful fallback
+// ═══════════════════════════════════════════════════════════
+
+function _key(userId, key) {
+  return userId ? `u:${userId}:${key}` : key;
+}
+
+async function getEvents(userId) {
   const store = getKV();
   if (store) {
     try {
-      const data = await store.get("events");
+      const data = await store.get(_key(userId, "events"));
       if (data !== null && data !== undefined) {
         _cache.events = data;
         return Array.isArray(data) ? data : [];
@@ -148,21 +162,21 @@ async function getEvents() {
   }
 }
 
-async function saveEvents(events) {
+async function saveEvents(userId, events) {
   _cache.events = events;
   const store = getKV();
   if (store) {
     try {
-      await store.set("events", events);
+      await store.set(_key(userId, "events"), events);
     } catch { /* silent */ }
   }
 }
 
-async function getStatus() {
+async function getStatus(userId) {
   const store = getKV();
   if (store) {
     try {
-      const data = await store.get("status");
+      const data = await store.get(_key(userId, "status"));
       if (data !== null && data !== undefined) {
         _cache.status = data;
         return data;
@@ -182,18 +196,18 @@ async function getStatus() {
   };
 }
 
-async function saveStatus(status) {
+async function saveStatus(userId, status) {
   _cache.status = status;
   const store = getKV();
   if (store) {
     try {
-      await store.set("status", status);
+      await store.set(_key(userId, "status"), status);
     } catch { /* silent */ }
   }
 }
 
-async function getBaseline(eventId, urlIdx) {
-  const key = `baseline:${eventId}:${urlIdx}`;
+async function getBaseline(userId, eventId, urlIdx) {
+  const key = _key(userId, `baseline:${eventId}:${urlIdx}`);
   const store = getKV();
   if (store) {
     try {
@@ -204,8 +218,8 @@ async function getBaseline(eventId, urlIdx) {
   return null;
 }
 
-async function saveBaseline(eventId, urlIdx, data) {
-  const key = `baseline:${eventId}:${urlIdx}`;
+async function saveBaseline(userId, eventId, urlIdx, data) {
+  const key = _key(userId, `baseline:${eventId}:${urlIdx}`);
   const store = getKV();
   if (store) {
     try {
@@ -214,8 +228,8 @@ async function saveBaseline(eventId, urlIdx, data) {
   }
 }
 
-async function getHistory(eventId) {
-  const key = `history:${eventId}`;
+async function getHistory(userId, eventId) {
+  const key = _key(userId, `history:${eventId}`);
   const store = getKV();
   if (store) {
     try {
@@ -226,56 +240,54 @@ async function getHistory(eventId) {
   return [];
 }
 
-async function appendHistory(eventId, entry) {
-  const key = `history:${eventId}`;
+async function appendHistory(userId, eventId, entry) {
+  const key = _key(userId, `history:${eventId}`);
   const store = getKV();
   if (store) {
     try {
       let history = await store.get(key);
       if (!Array.isArray(history)) history = [];
       history.push(entry);
-      // Keep last 100
       if (history.length > 100) history = history.slice(-100);
       await store.set(key, history);
     } catch { /* silent */ }
   }
 }
 
-async function getPushSubs() {
+async function getPushSubs(userId) {
   const store = getKV();
   if (store) {
     try {
-      const data = await store.get("push_subs");
+      const data = await store.get(_key(userId, "push_subs"));
       if (data !== null && data !== undefined) return Array.isArray(data) ? data : [];
     } catch { /* fallback */ }
   }
   return [];
 }
 
-async function savePushSub(sub) {
+async function savePushSub(userId, sub) {
   const store = getKV();
   if (store) {
     try {
-      let subs = await store.get("push_subs");
+      let subs = await store.get(_key(userId, "push_subs"));
       if (!Array.isArray(subs)) subs = [];
-      // Avoid duplicates by endpoint
       const exists = subs.find((s) => s.endpoint === sub.endpoint);
       if (!exists) {
         subs.push(sub);
-        await store.set("push_subs", subs);
+        await store.set(_key(userId, "push_subs"), subs);
       }
     } catch { /* silent */ }
   }
 }
 
-async function removePushSub(endpoint) {
+async function removePushSub(userId, endpoint) {
   const store = getKV();
   if (store) {
     try {
-      let subs = await store.get("push_subs");
+      let subs = await store.get(_key(userId, "push_subs"));
       if (!Array.isArray(subs)) return;
       subs = subs.filter((s) => s.endpoint !== endpoint);
-      await store.set("push_subs", subs);
+      await store.set(_key(userId, "push_subs"), subs);
     } catch { /* silent */ }
   }
 }
@@ -514,19 +526,19 @@ async function sendTelegram(text) {
   } catch { /* silent */ }
 }
 
-async function sendWebPush(title, body, url) {
+async function sendWebPush(userId, title, body, url) {
   const wp = getWebPush();
   if (!wp || !process.env.VAPID_PUBLIC_KEY) return;
 
-  const subs = await getPushSubs();
+  const subs = await getPushSubs(userId);
   if (!subs.length) return;
 
   const payload = JSON.stringify({
     title,
     body,
     url,
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
   });
 
   const expiredEndpoints = [];
@@ -536,7 +548,6 @@ async function sendWebPush(title, body, url) {
       try {
         await wp.sendNotification(sub, payload);
       } catch (err) {
-        // 410 Gone = subscription expired
         if (err.statusCode === 410 || err.statusCode === 404) {
           expiredEndpoints.push(sub.endpoint);
         }
@@ -544,9 +555,8 @@ async function sendWebPush(title, body, url) {
     })
   );
 
-  // Clean up expired subscriptions
   for (const endpoint of expiredEndpoints) {
-    await removePushSub(endpoint);
+    await removePushSub(userId, endpoint);
   }
 }
 
@@ -560,6 +570,7 @@ module.exports = {
   corsHeaders,
   jsonResponse,
   readBody,
+  getUserId,
   // KV Storage
   getEvents,
   saveEvents,

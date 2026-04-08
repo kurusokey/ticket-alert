@@ -7,6 +7,7 @@
 const {
   jsonResponse,
   corsHeaders,
+  getUserId,
   getStatus,
 } = require("../../lib");
 
@@ -18,8 +19,10 @@ module.exports = async function handler(req, res) {
     return res.end();
   }
 
+  const userId = getUserId(req);
+
   try {
-    const status = await getStatus();
+    const status = await getStatus(userId);
     return jsonResponse(res, status);
   } catch (err) {
     return jsonResponse(res, { error: err.message }, 500);

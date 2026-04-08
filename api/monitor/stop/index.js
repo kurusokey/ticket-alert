@@ -7,6 +7,7 @@
 const {
   jsonResponse,
   corsHeaders,
+  getUserId,
   getStatus,
   saveStatus,
   sendTelegram,
@@ -24,8 +25,10 @@ module.exports = async function handler(req, res) {
     return jsonResponse(res, { error: "Method not allowed" }, 405);
   }
 
+  const userId = getUserId(req);
+
   try {
-    const status = await getStatus();
+    const status = await getStatus(userId);
     status.running = false;
 
     const timeStr = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -34,7 +37,7 @@ module.exports = async function handler(req, res) {
     status.logs.push({ time: timeStr, message: "Surveillance arretee", level: "info" });
     status.logs = status.logs.slice(-200);
 
-    await saveStatus(status);
+    await saveStatus(userId, status);
 
     await sendTelegram("⏹ Ticket Alert arrete");
 
