@@ -609,6 +609,26 @@
         }
         .btn-add-url:active { color: #f97316; border-color: #f97316; }
 
+        /* ── Date entries ── */
+        .date-entry {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+        .date-entry input {
+            flex: 1;
+            background: #111118;
+            border: 1px solid #2a2a3a;
+            border-radius: 10px;
+            padding: 0.65rem 0.9rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .date-entry input:focus { border-color: #f97316; }
+
         /* ── Check history ── */
         .history-header {
             display: flex;
@@ -755,15 +775,10 @@
                     <label>Lieu</label>
                     <input type="text" id="eventVenue" placeholder="Ex: Paris La Defense Arena">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Date debut</label>
-                        <input type="date" id="eventDateStart">
-                    </div>
-                    <div class="form-group">
-                        <label>Date fin (optionnel)</label>
-                        <input type="date" id="eventDateEnd">
-                    </div>
+                <div class="form-group" id="datesGroup">
+                    <label>Dates du concert</label>
+                    <div id="datesList"></div>
+                    <button type="button" class="btn-add-url" onclick="addDateField()">+ Ajouter une date</button>
                 </div>
                 <div class="form-group">
                     <label>Ouverture vente</label>
@@ -1137,6 +1152,22 @@
             renderEvents();
         }
 
+        function getEventDates(ev) {
+            // Support: dates[] (new), date_start/date_end (v1), date (legacy)
+            if (ev.dates && Array.isArray(ev.dates) && ev.dates.length > 0) return ev.dates;
+            if (ev.date_start) return ev.date_end ? [ev.date_start, ev.date_end] : [ev.date_start];
+            if (ev.date) return [ev.date];
+            return [];
+        }
+
+        function fmtDates(ev) {
+            const dates = getEventDates(ev);
+            if (dates.length === 0) return '';
+            if (dates.length === 1) return fmtDate(dates[0]);
+            if (dates.length === 2) return fmtDate(dates[0]) + ' → ' + fmtDate(dates[1]);
+            return dates.map(d => fmtDate(d)).join(' · ');
+        }
+
         function getEventUrls(ev) {
             // Backward compat: if event has `url` (string), wrap as single entry
             if (ev.urls && Array.isArray(ev.urls) && ev.urls.length > 0) return ev.urls;
@@ -1156,7 +1187,7 @@
                 const bt = ev.active ? 'Actif' : 'Pause';
                 const cc = ev.active ? '' : 'inactive';
                 const sd = ev.sale_date ? fmtDate(ev.sale_date) : '';
-                const ed = ev.date_start ? (ev.date_end ? fmtDate(ev.date_start) + ' → ' + fmtDate(ev.date_end) : fmtDate(ev.date_start)) : (ev.date ? fmtDate(ev.date) : '');
+                const ed = fmtDates(ev);
                 const urls = getEventUrls(ev);
                 let urlsHtml = '';
                 for (const u of urls) {
@@ -1234,6 +1265,40 @@
             return urls;
         }
 
+        // ── Multi-date support ──
+
+        let dateFieldCount = 0;
+
+        function addDateField(val) {
+            dateFieldCount++;
+            const id = 'dateEntry_' + dateFieldCount;
+            const container = document.getElementById('datesList');
+            const div = document.createElement('div');
+            div.className = 'date-entry';
+            div.id = id;
+            div.innerHTML = `
+                <input type="date" class="date-input" value="${val || ''}">
+                <button type="button" class="btn-remove-url" onclick="removeDateField('${id}')">&times;</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeDateField(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+            if (document.getElementById('datesList').children.length === 0) addDateField();
+        }
+
+        function getFormDates() {
+            const entries = document.querySelectorAll('#datesList .date-input');
+            const dates = [];
+            entries.forEach(input => {
+                if (input.value) dates.push(input.value);
+            });
+            dates.sort();
+            return dates;
+        }
+
         function openForm() {
             editingId = null;
             clearFormFields();
@@ -1253,8 +1318,11 @@
             editingId = id;
             document.getElementById('eventName').value = ev.name || '';
             document.getElementById('eventVenue').value = ev.venue || '';
-            document.getElementById('eventDateStart').value = ev.date_start || ev.date || '';
-            document.getElementById('eventDateEnd').value = ev.date_end || '';
+            // Populate date fields
+            document.getElementById('datesList').innerHTML = '';
+            dateFieldCount = 0;
+            const dates = getEventDates(ev);
+            if (dates.length === 0) { addDateField(); } else { for (const d of dates) addDateField(d); }
             document.getElementById('eventSaleDate').value = (ev.sale_date || '').replace(' ', 'T');
             document.getElementById('eventMarker').value = ev.closed_marker || '';
             // Populate URL fields
@@ -1280,8 +1348,7 @@
                 id: editingId || slugify(name) + '-' + Date.now().toString(36),
                 name,
                 venue: document.getElementById('eventVenue').value.trim(),
-                date_start: document.getElementById('eventDateStart').value || null,
-                date_end: document.getElementById('eventDateEnd').value || null,
+                dates: getFormDates(),
                 sale_date: document.getElementById('eventSaleDate').value ? document.getElementById('eventSaleDate').value.replace('T', ' ') : null,
                 urls,
                 url: urls[0].url, // backward compat: keep first URL as `url`
@@ -1349,10 +1416,13 @@
         }
 
         function clearFormFields() {
-            ['eventName','eventVenue','eventDateStart','eventDateEnd','eventSaleDate','eventMarker']
+            ['eventName','eventVenue','eventSaleDate','eventMarker']
                 .forEach(id => document.getElementById(id).value = '');
             document.getElementById('urlsList').innerHTML = '';
             urlFieldCount = 0;
+            document.getElementById('datesList').innerHTML = '';
+            dateFieldCount = 0;
+            addDateField();  // always at least one
             addUrlField(); // Start with one empty URL field
         }
 
