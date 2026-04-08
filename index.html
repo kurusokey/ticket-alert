@@ -196,6 +196,58 @@
 
         .log-container:empty { display: none; }
 
+        .ticket-result {
+            background: #0d1a0d;
+            border: 1px solid #22c55e44;
+            border-radius: 10px;
+            padding: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .ticket-result .ticket-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #22c55e;
+        }
+
+        .ticket-result .ticket-detail {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 0.15rem;
+        }
+
+        .ticket-result a {
+            display: inline-block;
+            margin-top: 0.4rem;
+            background: #22c55e;
+            color: #000;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        .ticket-result a:active { transform: scale(0.97); }
+
+        .ticket-results-empty {
+            text-align: center;
+            padding: 0.8rem;
+            font-size: 0.8rem;
+            color: #444;
+        }
+
+        .log-toggle {
+            margin-top: 0.6rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #444;
+            cursor: pointer;
+            padding: 0.4rem;
+        }
+
+        .log-toggle:active { color: #888; }
+
         .log-line {
             padding: 0.15rem 0.6rem;
             border-bottom: 1px solid #0e0e18;
@@ -1042,7 +1094,9 @@
             </div>
 
             <div id="monitorAlerts"></div>
-            <div class="log-container" id="logContainer"></div>
+            <div id="ticketResults"></div>
+            <div class="log-toggle" id="logToggle" onclick="toggleLogs()" style="display:none">Logs techniques ▼</div>
+            <div class="log-container" id="logContainer" style="display:none"></div>
         </div>
 
         <!-- ── Events (right column on desktop) ── -->
@@ -1343,7 +1397,7 @@
                         if (r.status === 'OPEN' || r.status === 'CHANGED') {
                             const alertKey = r.event + '-' + (r.url || '') + '-' + r.status;
                             state.alerts.push({ time: now, event: r.event, url: r.url, detail: r.detail, md5: r.md5, newLinks: r.newLinks, contentChanged: r.contentChanged });
-                            state.logs.push({ time: now, message: `🚨 ${r.event} — ${r.detail}`, level: 'alert' });
+                            state.logs.push({ time: now, message: `🚨 ${r.event} — ${r.detail}`, level: 'alert', ticketUrl: r.ticketUrl || r.url });
                             // Vibrate phone
                             if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
                             // Play sound for new alerts
@@ -1502,42 +1556,87 @@
                 ac.innerHTML = '';
             }
 
-            // Logs with pagination
-            const lc = document.getElementById('logContainer');
-            if (data.logs?.length) {
-                const LOGS_PER_PAGE = 3;
-                const totalLogPages = Math.ceil(data.logs.length / LOGS_PER_PAGE);
-                if (currentLogPage >= totalLogPages) currentLogPage = totalLogPages - 1;
-                if (currentLogPage < 0) currentLogPage = 0;
-                const logStart = currentLogPage * LOGS_PER_PAGE;
-                const pageLogs = data.logs.slice(logStart, logStart + LOGS_PER_PAGE);
+            // Ticket results (OPEN only) with pagination
+            const tr = document.getElementById('ticketResults');
+            const tickets = (data.logs || []).filter(l => l.level === 'alert' || l.ticketUrl);
+            // Also collect from alerts
+            const allTickets = [
+                ...(data.alerts || []).map(a => ({ event: a.event, url: a.url, detail: a.detail, time: a.time })),
+                ...tickets.map(l => ({ event: '', url: '', detail: l.message, time: l.time })),
+            ];
+            // Deduplicate by url
+            const seenUrls = new Set();
+            const uniqueTickets = allTickets.filter(t => {
+                if (t.url && seenUrls.has(t.url)) return false;
+                if (t.url) seenUrls.add(t.url);
+                return true;
+            });
 
-                let logsHtml = pageLogs.map(l => `
+            if (uniqueTickets.length > 0) {
+                const TICKETS_PER_PAGE = 3;
+                const totalTicketPages = Math.ceil(uniqueTickets.length / TICKETS_PER_PAGE);
+                if (currentTicketPage >= totalTicketPages) currentTicketPage = totalTicketPages - 1;
+                if (currentTicketPage < 0) currentTicketPage = 0;
+                const tStart = currentTicketPage * TICKETS_PER_PAGE;
+                const pageTickets = uniqueTickets.slice(tStart, tStart + TICKETS_PER_PAGE);
+
+                let html = pageTickets.map(t => `
+                    <div class="ticket-result">
+                        <div class="ticket-name">🎫 ${esc(t.event || 'Billetterie detectee')}</div>
+                        <div class="ticket-detail">${esc(t.detail || '')}</div>
+                        ${t.url ? `<a href="${esc(t.url)}" target="_blank">Acheter</a>` : ''}
+                    </div>
+                `).join('');
+
+                if (totalTicketPages > 1) {
+                    html += `<div class="pagination pagination-sm">
+                        <button class="page-btn page-btn-sm" onclick="goTicketPage(${currentTicketPage - 1})" ${currentTicketPage === 0 ? 'disabled' : ''}>←</button>
+                        <span class="page-info">${currentTicketPage + 1} / ${totalTicketPages}</span>
+                        <button class="page-btn page-btn-sm" onclick="goTicketPage(${currentTicketPage + 1})" ${currentTicketPage >= totalTicketPages - 1 ? 'disabled' : ''}>→</button>
+                    </div>`;
+                }
+                tr.innerHTML = html;
+            } else if (data.running) {
+                tr.innerHTML = '<div class="ticket-results-empty">Aucun billet detecte pour l\'instant...</div>';
+            } else {
+                tr.innerHTML = '';
+            }
+
+            // Logs techniques (hidden by default)
+            const lc = document.getElementById('logContainer');
+            const logToggle = document.getElementById('logToggle');
+            const techLogs = (data.logs || []).filter(l => l.level !== 'alert');
+            if (techLogs.length > 0) {
+                logToggle.style.display = '';
+                lc.innerHTML = techLogs.map(l => `
                     <div class="log-line ${l.level || ''}">
                         <span class="log-time">${l.time}</span>
                         <span class="log-msg"> ${esc(l.message)}</span>
                     </div>
                 `).join('');
-
-                if (totalLogPages > 1) {
-                    logsHtml += `<div class="pagination pagination-sm">
-                        <button class="page-btn page-btn-sm" onclick="goLogPage(${currentLogPage - 1})" ${currentLogPage === 0 ? 'disabled' : ''}>←</button>
-                        <span class="page-info">${currentLogPage + 1} / ${totalLogPages}</span>
-                        <button class="page-btn page-btn-sm" onclick="goLogPage(${currentLogPage + 1})" ${currentLogPage >= totalLogPages - 1 ? 'disabled' : ''}>→</button>
-                    </div>`;
-                }
-
-                lc.innerHTML = logsHtml;
-            } else if (!data.running) {
+            } else {
+                logToggle.style.display = 'none';
                 lc.innerHTML = '';
             }
         }
 
-        let currentLogPage = 0;
+        let currentTicketPage = 0;
 
-        function goLogPage(page) {
-            currentLogPage = page;
+        function goTicketPage(page) {
+            currentTicketPage = page;
             renderMonitorUI();
+        }
+
+        function toggleLogs() {
+            const lc = document.getElementById('logContainer');
+            const toggle = document.getElementById('logToggle');
+            if (lc.style.display === 'none') {
+                lc.style.display = '';
+                toggle.textContent = 'Logs techniques ▲';
+            } else {
+                lc.style.display = 'none';
+                toggle.textContent = 'Logs techniques ▼';
+            }
         }
 
         // ══════════════════════════════════════
