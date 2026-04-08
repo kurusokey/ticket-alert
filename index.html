@@ -841,61 +841,90 @@
 
         /* ── Desktop (960px+) ── */
         @media (min-width: 960px) {
-            body { display: flex; justify-content: center; }
-            .container { max-width: 1100px; padding: 2.5rem 3rem; }
+            .container { max-width: 1200px; padding: 2rem 3rem; }
             header h1 { font-size: 2.3rem; }
 
-            /* Monitor: horizontal layout */
-            .monitor-panel { padding: 2rem 2.5rem; border-radius: 20px; margin-bottom: 2rem; }
-            .monitor-status-row { font-size: 1rem; }
-            .btn-cta { max-width: 360px; font-size: 1.1rem; padding: 1.1rem; }
+            /* 2-column layout: monitor left, events right */
+            .desktop-layout {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+                align-items: start;
+            }
+
+            /* Monitor fills left column */
+            .monitor-panel {
+                padding: 1.5rem 2rem;
+                border-radius: 20px;
+                margin-bottom: 0;
+                position: sticky;
+                top: 1rem;
+            }
+            .monitor-status-row { font-size: 0.95rem; }
+            .btn-cta { max-width: 100%; font-size: 1.05rem; padding: 1rem; }
             .monitor-stats {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 1rem;
-                padding-top: 1.2rem;
-                margin-top: 1.2rem;
+                gap: 0.8rem;
+                padding-top: 1rem;
+                margin-top: 1rem;
             }
-            .monitor-stat .val { font-size: 1.4rem; }
-            .sched-countdown { font-size: 2.5rem; letter-spacing: 3px; }
-            .log-container { max-height: 280px; font-size: 0.82rem; border-radius: 12px; }
+            .monitor-stat .val { font-size: 1.3rem; }
+            .sched-countdown { font-size: 2rem; letter-spacing: 3px; }
+            .log-container {
+                max-height: 250px;
+                font-size: 0.78rem;
+                border-radius: 10px;
+            }
+            .log-line .log-msg {
+                word-break: break-word;
+                white-space: normal;
+            }
 
-            /* Events: grid 2 columns */
+            /* Events column (right) */
+            .events-column {
+                display: flex;
+                flex-direction: column;
+            }
             .section-header { margin-bottom: 1rem; }
             .section-title { font-size: 0.85rem; }
             .btn-add { padding: 0.5rem 1rem; font-size: 0.85rem; }
             .events-list {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-                gap: 1rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.8rem;
             }
-            .event-card { padding: 1.5rem 1.8rem; }
-            .event-name { font-size: 1.15rem; }
-            .event-info { font-size: 0.88rem; }
+            .event-card { padding: 1.3rem 1.5rem; }
+            .event-name { font-size: 1.1rem; }
+            .event-info {
+                font-size: 0.85rem;
+                white-space: normal;
+                word-break: break-word;
+            }
+            .event-info span { white-space: normal; }
             .event-actions-row { margin-top: 0.8rem; }
-            .event-actions-row button { padding: 0.65rem; font-size: 0.88rem; border-radius: 10px; }
+            .event-actions-row button { padding: 0.6rem; font-size: 0.85rem; border-radius: 10px; }
 
             /* Form: wider */
-            .form-inner { max-width: 640px; padding: 2.5rem 2rem 3rem; }
-            .form-header h2 { font-size: 1.3rem; }
-            .form-group input { padding: 0.85rem 1rem; font-size: 1rem; }
-            .btn-submit { padding: 1.1rem; font-size: 1.05rem; }
+            .form-inner { max-width: 640px; padding: 2rem 2rem 3rem; }
+            .form-header h2 { font-size: 1.2rem; }
+            .form-group input { padding: 0.8rem 1rem; font-size: 1rem; }
+            .btn-submit { padding: 1rem; font-size: 1.05rem; }
 
             /* Auth */
             .auth-box { max-width: 440px; }
             .auth-box h1 { font-size: 2.3rem; }
-            .auth-code-display .code { font-size: 2.5rem; }
 
-            /* History */
-            .history-container { max-height: 300px; }
+            /* Alert items: text wraps */
+            .alert-item { word-break: break-word; }
         }
 
-        /* ── Wide Desktop (1200px+) ── */
-        @media (min-width: 1200px) {
-            .container { max-width: 1200px; }
-            .events-list {
-                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            }
+        /* ── Wide Desktop (1400px+) ── */
+        @media (min-width: 1400px) {
+            .container { max-width: 1400px; }
+            .desktop-layout { gap: 2rem; }
+            .monitor-panel { padding: 2rem 2.5rem; }
+            .event-card { padding: 1.5rem 1.8rem; }
         }
     </style>
 </head>
@@ -920,6 +949,7 @@
         </header>
         <div class="auth-user-info" id="userInfo"></div>
 
+        <div class="desktop-layout">
         <!-- ── Monitor ── -->
         <div class="monitor-panel" id="monitorPanel">
             <div class="monitor-status-row">
@@ -964,12 +994,16 @@
             <div class="log-container" id="logContainer"></div>
         </div>
 
-        <!-- ── Events ── -->
-        <div class="section-header">
-            <span class="section-title">Evenements</span>
-            <button class="btn-add" onclick="openForm()">+ Ajouter</button>
+        <!-- ── Events (right column on desktop) ── -->
+        <div class="events-column">
+            <div class="section-header">
+                <span class="section-title">Evenements</span>
+                <button class="btn-add" onclick="openForm()">+ Ajouter</button>
+            </div>
+            <div class="events-list" id="eventsList"></div>
         </div>
-        <div class="events-list" id="eventsList"></div>
+
+        </div><!-- /desktop-layout -->
 
         <!-- ── Check History ── -->
         <div class="history-header" onclick="toggleHistory()">
