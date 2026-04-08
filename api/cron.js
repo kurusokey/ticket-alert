@@ -88,8 +88,9 @@ module.exports = async function handler(req, res) {
       const venue = ev.venue || "";
       const closedMarker = ev.closed_marker || "";
 
-      // Support both legacy `url` (string) and new `urls` (array)
-      const urls = ev.urls || (ev.url ? [ev.url] : []);
+      // Support both legacy `url` (string) and new `urls` (array of string or {url,label})
+      const rawUrls = ev.urls || (ev.url ? [ev.url] : []);
+      const urls = rawUrls.map(u => typeof u === 'string' ? u : u.url).filter(Boolean);
 
       for (let urlIdx = 0; urlIdx < urls.length; urlIdx++) {
         const url = urls[urlIdx];
