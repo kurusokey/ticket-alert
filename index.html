@@ -1215,14 +1215,21 @@
                 document.getElementById('userInfo').innerHTML =
                     `${esc(auth.name || '')} &mdash; <a onclick="logout()">Deconnexion</a>`;
             }
-            // Nettoyer le vieux state monitor local (alertes/logs d'anciennes sessions)
+            // Nettoyer et dedupliquer le state monitor local
             const mon = getMonState();
-            if (mon.alerts?.length || mon.logs?.length) {
-                mon.alerts = [];
-                mon.logs = [];
-                mon.last_results = [];
-                setMonState(mon);
+            if (mon.alerts?.length) {
+                const seen = new Set();
+                mon.alerts = mon.alerts.filter(a => {
+                    const key = (a.event || '') + '|' + (a.url || '');
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
             }
+            if (mon.logs?.length) {
+                mon.logs = mon.logs.slice(-20); // garder que les 20 derniers logs
+            }
+            setMonState(mon);
             initApp();
         }
 
@@ -1556,21 +1563,25 @@
                 ac.innerHTML = '';
             }
 
-            // Ticket results (OPEN only) with pagination
+            // Ticket results: deduplicate by event+url, show only unique purchase links
             const tr = document.getElementById('ticketResults');
-            const tickets = (data.logs || []).filter(l => l.level === 'alert' || l.ticketUrl);
-            // Also collect from alerts
-            const allTickets = [
-                ...(data.alerts || []).map(a => ({ event: a.event, url: a.url, detail: a.detail, time: a.time })),
-                ...tickets.map(l => ({ event: '', url: '', detail: l.message, time: l.time })),
-            ];
-            // Deduplicate by url
-            const seenUrls = new Set();
-            const uniqueTickets = allTickets.filter(t => {
-                if (t.url && seenUrls.has(t.url)) return false;
-                if (t.url) seenUrls.add(t.url);
-                return true;
-            });
+            const seen = new Set();
+            const uniqueTickets = [];
+            // Alerts first (have event + url)
+            for (const a of (data.alerts || [])) {
+                const key = (a.event || '') + '|' + (a.url || '');
+                if (seen.has(key)) continue;
+                seen.add(key);
+                uniqueTickets.push({ event: a.event, url: a.url, detail: a.detail, time: a.time });
+            }
+            // Logs with ticketUrl (backup)
+            for (const l of (data.logs || [])) {
+                if (!l.ticketUrl) continue;
+                const key = '|' + l.ticketUrl;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                uniqueTickets.push({ event: '', url: l.ticketUrl, detail: l.message, time: l.time });
+            }
 
             if (uniqueTickets.length > 0) {
                 const TICKETS_PER_PAGE = 3;
