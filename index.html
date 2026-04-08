@@ -360,6 +360,16 @@
             font-variant-numeric: tabular-nums;
         }
 
+        .pagination-sm {
+            padding: 0.5rem 0 0.2rem;
+        }
+
+        .page-btn-sm {
+            width: 34px;
+            height: 34px;
+            font-size: 0.9rem;
+        }
+
         /* ── Form (modal overlay on mobile) ── */
         .form-overlay {
             display: none;
@@ -1356,6 +1366,10 @@
                 state.logs.push({ time: now, message: `Erreur reseau: ${e.message}`, level: 'error' });
             }
 
+            // Go to last page to show newest logs
+            const LOGS_PER_PAGE = 3;
+            currentLogPage = Math.max(0, Math.ceil(state.logs.length / LOGS_PER_PAGE) - 1);
+
             setMonState(state);
             renderMonitorUI();
         }
@@ -1488,20 +1502,42 @@
                 ac.innerHTML = '';
             }
 
-            // Logs
+            // Logs with pagination
             const lc = document.getElementById('logContainer');
             if (data.logs?.length) {
-                const atBottom = lc.scrollTop + lc.clientHeight >= lc.scrollHeight - 20;
-                lc.innerHTML = data.logs.map(l => `
+                const LOGS_PER_PAGE = 3;
+                const totalLogPages = Math.ceil(data.logs.length / LOGS_PER_PAGE);
+                if (currentLogPage >= totalLogPages) currentLogPage = totalLogPages - 1;
+                if (currentLogPage < 0) currentLogPage = 0;
+                const logStart = currentLogPage * LOGS_PER_PAGE;
+                const pageLogs = data.logs.slice(logStart, logStart + LOGS_PER_PAGE);
+
+                let logsHtml = pageLogs.map(l => `
                     <div class="log-line ${l.level || ''}">
                         <span class="log-time">${l.time}</span>
                         <span class="log-msg"> ${esc(l.message)}</span>
                     </div>
                 `).join('');
-                if (atBottom) lc.scrollTop = lc.scrollHeight;
+
+                if (totalLogPages > 1) {
+                    logsHtml += `<div class="pagination pagination-sm">
+                        <button class="page-btn page-btn-sm" onclick="goLogPage(${currentLogPage - 1})" ${currentLogPage === 0 ? 'disabled' : ''}>←</button>
+                        <span class="page-info">${currentLogPage + 1} / ${totalLogPages}</span>
+                        <button class="page-btn page-btn-sm" onclick="goLogPage(${currentLogPage + 1})" ${currentLogPage >= totalLogPages - 1 ? 'disabled' : ''}>→</button>
+                    </div>`;
+                }
+
+                lc.innerHTML = logsHtml;
             } else if (!data.running) {
                 lc.innerHTML = '';
             }
+        }
+
+        let currentLogPage = 0;
+
+        function goLogPage(page) {
+            currentLogPage = page;
+            renderMonitorUI();
         }
 
         // ══════════════════════════════════════
