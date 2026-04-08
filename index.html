@@ -1093,7 +1093,6 @@
                 </div>
             </div>
 
-            <div id="monitorAlerts"></div>
             <div id="ticketResults"></div>
             <div class="log-toggle" id="logToggle" onclick="toggleLogs()" style="display:none">Logs techniques ▼</div>
             <div class="log-container" id="logContainer" style="display:none"></div>
@@ -1539,28 +1538,6 @@
                 stats.style.display = 'none';
                 document.getElementById('scheduler').style.display = '';
                 if (wakeLock) { wakeLock.release(); wakeLock = null; }
-            }
-
-            // Alerts
-            const ac = document.getElementById('monitorAlerts');
-            if (data.alerts?.length) {
-                ac.innerHTML = data.alerts.map(a => {
-                    let extra = '';
-                    if (a.newLinks && a.newLinks.length) {
-                        extra += `<div style="margin-top:0.3rem;font-size:0.75rem;color:#fb923c">Nouveaux liens: ${a.newLinks.map(l => `<a href="${esc(l)}" target="_blank" style="color:#fb923c">${esc(l)}</a>`).join(', ')}</div>`;
-                    }
-                    if (a.contentChanged) {
-                        extra += `<div style="margin-top:0.2rem;font-size:0.72rem;color:#888">Contenu modifie (md5: ${esc(a.md5 || '?')})</div>`;
-                    }
-                    return `
-                    <div class="alert-item">
-                        <div class="alert-text">🚨 ${esc(a.event)} — BILLETTERIE OUVERTE</div>
-                        ${a.url ? `<a href="${esc(a.url)}" target="_blank">Ouvrir le site</a>` : ''}
-                        ${extra}
-                    </div>`;
-                }).join('');
-            } else {
-                ac.innerHTML = '';
             }
 
             // Ticket results: deduplicate by event+url, show only unique purchase links
