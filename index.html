@@ -1239,6 +1239,55 @@
             margin-left: 0.5rem;
         }
 
+        /* ── Days-until badges ── */
+        .badge-past { background: #1c1917; color: #555; }
+        .badge-today { background: #431407; color: #f97316; animation: pulse 1s infinite; }
+        .badge-soon { background: #422006; color: #f59e0b; }
+        .badge-future { background: #0a1520; color: #0ea5e9; }
+
+        /* ── Past events ── */
+        .event-card.past { opacity: 0.4; border-style: dashed; }
+
+        /* ── URL health dots ── */
+        .health-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+        .health-dot.ok { background: #22c55e; }
+        .health-dot.err { background: #ef4444; }
+
+        /* ── Onboarding overlay ── */
+        .onboarding-overlay {
+            position: fixed; inset: 0; z-index: 300;
+            background: #0a0a0fee; backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center; padding: 1rem;
+        }
+        .onboarding-card {
+            max-width: 340px; width: 100%; text-align: center;
+        }
+        .onboarding-step { padding: 2rem 1rem; }
+        .onboarding-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .onboarding-step h3 { color: #fff; font-size: 1.2rem; margin-bottom: 0.5rem; }
+        .onboarding-step p { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+        /* ── Cron health indicator ── */
+        .cron-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.7rem;
+            color: #666;
+            background: #111;
+            border: 1px solid #333;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .cron-indicator .cron-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: #555;
+        }
+        .cron-indicator.active .cron-dot { background: #22c55e; }
+        .cron-indicator.active { color: #22c55e; border-color: #22c55e44; background: #22c55e11; }
+        .cron-indicator.inactive .cron-dot { background: #ef4444; }
+        .cron-indicator.inactive { color: #ef4444; border-color: #ef444444; background: #ef444411; }
+
         /* ── Small phones ── */
         @media (max-width: 380px) {
             .container { padding: 0.7rem; }
@@ -1675,6 +1724,7 @@
                 <div class="monitor-status-text" id="monitorTitle"><strong>Surveillance inactive</strong></div>
                 <button class="push-badge" id="pushBadge" onclick="togglePush()">Push off</button>
                 <span class="telegram-badge">Telegram</span>
+                <span class="cron-indicator" id="cronIndicator"><span class="cron-dot"></span>Cron</span>
             </div>
 
             <button class="btn-cta start" id="btnStart" onclick="startMonitor()">Lancer la surveillance</button>
@@ -1871,6 +1921,30 @@
         </div>
     </div>
 
+    <!-- ── Onboarding overlay ── -->
+    <div class="onboarding-overlay" id="onboarding" style="display:none">
+        <div class="onboarding-card">
+            <div class="onboarding-step" id="onboardStep1">
+                <div class="onboarding-icon">🔍</div>
+                <h3>1. Recherche</h3>
+                <p>Tape le nom d'un artiste ou d'une equipe</p>
+                <button class="btn-cta start" onclick="nextOnboardStep(2)">Suivant</button>
+            </div>
+            <div class="onboarding-step" id="onboardStep2" style="display:none">
+                <div class="onboarding-icon">➕</div>
+                <h3>2. Ajoute</h3>
+                <p>Clique "Surveiller" pour ajouter l'evenement</p>
+                <button class="btn-cta start" onclick="nextOnboardStep(3)">Suivant</button>
+            </div>
+            <div class="onboarding-step" id="onboardStep3" style="display:none">
+                <div class="onboarding-icon">🔔</div>
+                <h3>3. Alerte</h3>
+                <p>Tu recois une alerte Telegram des que la billetterie ouvre</p>
+                <button class="btn-cta start" onclick="closeOnboarding()">C'est parti !</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -1914,6 +1988,7 @@
                     setAuth({ pin: data.pin, name: data.name });
                     if (data.isNew) showToast('Compte cree');
                     finishAuth();
+                    if (data.isNew) showOnboarding();
                 } else {
                     showToast(data.error || 'Erreur', true);
                 }
@@ -2494,7 +2569,10 @@
             let html = pageEvents.map(ev => {
                 const bc = ev.active ? 'badge-active' : 'badge-paused';
                 const bt = ev.active ? 'Actif' : 'Pause';
-                const cc = ev.active ? '' : 'inactive';
+                const daysUntil = getDaysUntil(ev);
+                const isPast = daysUntil === null;
+                let cc = ev.active ? '' : 'inactive';
+                if (isPast) cc += ' past';
                 const sd = ev.sale_date ? fmtDate(ev.sale_date) : '';
                 const ed = fmtDates(ev);
                 const urls = getEventUrls(ev);
@@ -2504,7 +2582,10 @@
                     try { host = new URL(u.url).hostname.replace('www.',''); } catch {}
                     if (host) {
                         const lbl = u.label ? esc(u.label) : esc(host);
-                        urlsHtml += `<span><a href="${esc(u.url)}" target="_blank">${lbl}</a></span>`;
+                        const healthDot = urlHealthCache?.[ev.id]?.[u.url] !== undefined
+                            ? `<span class="health-dot ${urlHealthCache[ev.id][u.url] ? 'ok' : 'err'}"></span>`
+                            : '';
+                        urlsHtml += `<span>${healthDot}<a href="${esc(u.url)}" target="_blank">${lbl}</a></span>`;
                     }
                 }
 
@@ -2513,6 +2594,7 @@
                         <div class="event-top">
                             <span class="event-name">${esc(ev.name)}</span>
                             <span class="badge ${bc}">${bt}</span>
+                            ${fmtDaysUntil(daysUntil)}
                         </div>
                         <div class="event-info">
                             ${ev.venue ? `<span>${esc(ev.venue)}</span>` : ''}
@@ -3449,11 +3531,102 @@
         }
 
         // ══════════════════════════════════════
+        // DAYS-UNTIL COUNTDOWN
+        // ══════════════════════════════════════
+
+        function getDaysUntil(ev) {
+            const dates = getEventDates(ev);
+            const today = new Date(); today.setHours(0,0,0,0);
+            let earliest = null;
+            for (const d of dates) {
+                const dt = new Date(d.date || d);
+                if (dt >= today && (!earliest || dt < earliest)) earliest = dt;
+            }
+            if (!earliest) return null; // all past
+            return Math.ceil((earliest - today) / 86400000);
+        }
+
+        function fmtDaysUntil(days) {
+            if (days === null) return '<span class="badge badge-past">Termine</span>';
+            if (days === 0) return '<span class="badge badge-today">Aujourd\'hui</span>';
+            if (days === 1) return '<span class="badge badge-soon">Demain</span>';
+            if (days <= 7) return '<span class="badge badge-soon">J-' + days + '</span>';
+            if (days <= 30) return '<span class="badge badge-future">J-' + days + '</span>';
+            return '<span class="badge badge-future">dans ' + Math.floor(days / 30) + ' mois</span>';
+        }
+
+        // ══════════════════════════════════════
+        // URL HEALTH
+        // ══════════════════════════════════════
+
+        let urlHealthCache = null;
+
+        async function loadUrlHealth() {
+            try {
+                const data = await apiCall('/api/events/health');
+                if (data && data.events) {
+                    urlHealthCache = {};
+                    for (const ev of data.events) {
+                        urlHealthCache[ev.id] = {};
+                        for (const u of ev.urls) {
+                            urlHealthCache[ev.id][u.url] = u.ok;
+                        }
+                    }
+                    renderEvents(); // re-render with health dots
+                }
+            } catch {}
+        }
+
+        // ══════════════════════════════════════
+        // CRON HEALTH
+        // ══════════════════════════════════════
+
+        async function loadCronHealth() {
+            try {
+                const data = await apiCall('/api/monitor/heartbeat');
+                const el = document.getElementById('cronIndicator');
+                if (!el) return;
+                if (data && data.healthy) {
+                    el.className = 'cron-indicator active';
+                    el.innerHTML = '<span class="cron-dot"></span>Cron actif';
+                } else {
+                    el.className = 'cron-indicator inactive';
+                    el.innerHTML = '<span class="cron-dot"></span>Cron inactif';
+                }
+            } catch {
+                const el = document.getElementById('cronIndicator');
+                if (el) {
+                    el.className = 'cron-indicator inactive';
+                    el.innerHTML = '<span class="cron-dot"></span>Cron inactif';
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // ONBOARDING
+        // ══════════════════════════════════════
+
+        function showOnboarding() {
+            document.getElementById('onboarding').style.display = '';
+        }
+
+        function nextOnboardStep(step) {
+            document.querySelectorAll('.onboarding-step').forEach(s => s.style.display = 'none');
+            document.getElementById('onboardStep' + step).style.display = '';
+        }
+
+        function closeOnboarding() {
+            document.getElementById('onboarding').style.display = 'none';
+        }
+
+        // ══════════════════════════════════════
         // INIT
         // ══════════════════════════════════════
 
         function initApp() {
             loadEvents();
+            loadUrlHealth();
+            loadCronHealth();
             restoreSchedule();
             restorePushState();
             initPullToRefresh();
