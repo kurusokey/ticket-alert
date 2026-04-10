@@ -828,6 +828,14 @@
             color: #888;
         }
 
+        .search-error {
+            color: #ef4444;
+            background: #1a0a0a;
+            border: 1px solid #ef444433;
+            border-radius: 10px;
+            margin-top: 0.6rem;
+        }
+
         /* ── Small phones ── */
         @media (max-width: 380px) {
             .container { padding: 0.7rem; }
@@ -1421,7 +1429,13 @@
                 } else {
                     showToast(data.error || 'Erreur', true);
                 }
-            } catch { showToast('Erreur de connexion', true); }
+            } catch (e) {
+                if (e.name === 'TypeError') {
+                    showToast('Pas de connexion internet', true);
+                } else {
+                    showToast('Erreur de connexion', true);
+                }
+            }
         }
 
         function finishAuth() {
@@ -1641,7 +1655,8 @@
                 if (state.logs.length > 50) state.logs = state.logs.slice(-50);
 
             } catch (e) {
-                state.logs.push({ time: now, message: `Erreur reseau: ${e.message}`, level: 'error' });
+                const errMsg = e.name === 'TypeError' ? 'Pas de connexion' : (e.message || 'Erreur inconnue');
+                state.logs.push({ time: now, message: `Erreur: ${errMsg}`, level: 'error' });
             }
 
             // Go to last page to show newest logs
@@ -1865,7 +1880,16 @@
                 opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
                 const res = await fetch(`${API}${path}`, opts);
                 if (res.ok) return await res.json();
-            } catch {}
+                // Try to get error message from response
+                try {
+                    const err = await res.json();
+                    if (err.error) showToast(err.error, true);
+                } catch {}
+            } catch (e) {
+                if (e.name === 'TypeError') {
+                    showToast('Connexion impossible — verifie ton reseau', true);
+                }
+            }
             return null;
         }
 
@@ -2414,8 +2438,12 @@
                 const res = await fetch(`${API}/api/agent/search`, {
                     method: 'POST',
                     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ artist }),
+                    body: JSON.stringify({ query: artist }),
                 });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || `Erreur serveur (${res.status})`);
+                }
                 const data = await res.json();
 
                 loading.style.display = 'none';
@@ -2467,7 +2495,15 @@
                 loading.style.display = 'none';
                 btn.disabled = false;
                 btn.textContent = 'Rechercher';
-                results.innerHTML = `<div class="search-message">Erreur: ${esc(e.message)}</div>`;
+                let msg = 'Une erreur est survenue';
+                if (e.name === 'TypeError' || e.message.includes('fetch')) {
+                    msg = 'Impossible de contacter le serveur. Verifie ta connexion.';
+                } else if (e.message.includes('timeout') || e.message.includes('abort')) {
+                    msg = 'La recherche a pris trop de temps. Reessaie.';
+                } else if (e.message) {
+                    msg = e.message;
+                }
+                results.innerHTML = `<div class="search-message search-error">${esc(msg)}</div>`;
             }
         }
 
