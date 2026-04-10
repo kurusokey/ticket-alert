@@ -54,9 +54,16 @@ module.exports = async function handler(req, res) {
           // Get links with their text and href
           const links = [];
           $("a[href]").each(function() {
-            const href = $(this).attr("href") || "";
+            let href = $(this).attr("href") || "";
             const text = $(this).text().trim();
-            if (text && href.startsWith("http") && text.length > 3 && text.length < 200) {
+            // Decode DuckDuckGo redirect URLs
+            if (href.includes("duckduckgo.com/l/?uddg=")) {
+              try {
+                const url = new URL(href, "https://duckduckgo.com");
+                href = decodeURIComponent(url.searchParams.get("uddg") || href);
+              } catch {}
+            }
+            if (text && text.length > 3 && text.length < 200 && (href.startsWith("http://") || href.startsWith("https://"))) {
               links.push(`[${text}](${href})`);
             }
           });
