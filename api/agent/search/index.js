@@ -47,27 +47,36 @@ module.exports = async function handler(req, res) {
           clearTimeout(timeout);
           if (!response.ok) return { site: site.name, error: `HTTP ${response.status}`, content: "" };
           const html = await response.text();
-          // Extract text content (strip HTML but keep links)
           const { load } = require("cheerio");
           const $ = load(html);
+
+          // Special handling for DuckDuckGo: extract structured results
+          const isDDG = site.url.includes("duckduckgo.com");
+          if (isDDG) {
+            const results = [];
+            $(".result").each(function(i) {
+              if (i >= 10) return;
+              const title = $(this).find(".result__title").text().trim();
+              const snippet = $(this).find(".result__snippet").text().trim();
+              let href = $(this).find(".result__a").attr("href") || "";
+              if (href.includes("uddg=")) {
+                try { href = decodeURIComponent(new URL(href, "https://duckduckgo.com").searchParams.get("uddg")); } catch {}
+              }
+              if (title) results.push(`${title}\n${href}\n${snippet}`);
+            });
+            return { site: site.name, url: site.url, content: results.join("\n\n"), links: [] };
+          }
+
+          // Regular sites: extract links and text
           $("script, style, nav, footer, header, noscript").remove();
-          // Get links with their text and href
           const links = [];
           $("a[href]").each(function() {
             let href = $(this).attr("href") || "";
             const text = $(this).text().trim();
-            // Decode DuckDuckGo redirect URLs
-            if (href.includes("duckduckgo.com/l/?uddg=")) {
-              try {
-                const url = new URL(href, "https://duckduckgo.com");
-                href = decodeURIComponent(url.searchParams.get("uddg") || href);
-              } catch {}
-            }
             if (text && text.length > 3 && text.length < 200 && (href.startsWith("http://") || href.startsWith("https://"))) {
               links.push(`[${text}](${href})`);
             }
           });
-          // Get main text content (trimmed)
           const textContent = $.text().replace(/\s+/g, " ").trim().substring(0, 3000);
           return { site: site.name, url: site.url, content: textContent.substring(0, 2000), links: links.slice(0, 30) };
         } catch (e) {
