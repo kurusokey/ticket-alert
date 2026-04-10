@@ -836,6 +836,397 @@
             margin-top: 0.6rem;
         }
 
+        /* ── Calendar view ── */
+        .calendar-wrapper {
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 14px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+        }
+
+        .calendar-nav-btn {
+            background: #0a0a0f;
+            border: 1px solid #222;
+            color: #888;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-nav-btn:active { background: #1a1a2a; color: #fff; }
+
+        .calendar-month-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            text-transform: capitalize;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            padding: 0.3rem 0;
+        }
+
+        .calendar-day {
+            text-align: center;
+            padding: 0.4rem 0;
+            font-size: 0.8rem;
+            color: #666;
+            border-radius: 8px;
+            cursor: default;
+            position: relative;
+            min-height: 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-day.today {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .calendar-day.has-event {
+            cursor: pointer;
+        }
+
+        .calendar-day.has-event:active {
+            background: #1a1a2a;
+        }
+
+        .calendar-day.selected {
+            background: #1a1a2a;
+            border: 1px solid #f97316;
+        }
+
+        .calendar-day.empty {
+            color: transparent;
+            cursor: default;
+        }
+
+        .calendar-dots {
+            display: flex;
+            gap: 3px;
+            margin-top: 2px;
+            justify-content: center;
+        }
+
+        .calendar-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        .calendar-dot.concert { background: #f97316; }
+        .calendar-dot.sport { background: #22c55e; }
+        .calendar-dot.other { background: #666; }
+
+        .calendar-day-events {
+            margin-top: 0.8rem;
+        }
+
+        .calendar-day-events .calendar-event-item {
+            background: #0a0a0f;
+            border: 1px solid #1e1e2e;
+            border-radius: 10px;
+            padding: 0.7rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.82rem;
+        }
+
+        .calendar-event-item .cal-ev-name {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .calendar-event-item .cal-ev-venue {
+            color: #888;
+            font-size: 0.75rem;
+            margin-top: 0.15rem;
+        }
+
+        .calendar-event-item .cal-ev-type {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.1rem 0.4rem;
+            border-radius: 10px;
+            margin-top: 0.25rem;
+        }
+
+        .cal-ev-type.concert { background: #f9731622; color: #f97316; }
+        .cal-ev-type.sport { background: #22c55e22; color: #22c55e; }
+        .cal-ev-type.other { background: #33333344; color: #888; }
+
+        /* ── Filter bar ── */
+        .filter-bar {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select {
+            background: #0a0a0f;
+            border: 1px solid #222;
+            color: #aaa;
+            border-radius: 8px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.75rem;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .filter-bar select:focus { border-color: #f97316; }
+
+        /* ── Share & calendar action buttons ── */
+        .event-actions-row {
+            flex-wrap: wrap;
+        }
+
+        .btn-share, .btn-cal {
+            font-size: 0.75rem !important;
+        }
+
+        /* ── Swipe to delete ── */
+        .event-card-swipe-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        .swipe-delete-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100px;
+            background: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .event-card.swiping {
+            transition: none;
+        }
+
+        .event-card.snap-back {
+            transition: transform 0.25s ease;
+        }
+
+        /* ── Pull to refresh ── */
+        .pull-to-refresh {
+            text-align: center;
+            padding: 0;
+            overflow: hidden;
+            height: 0;
+            transition: height 0.2s ease;
+            color: #666;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .pull-to-refresh.visible {
+            height: 50px;
+        }
+
+        .pull-to-refresh .ptr-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #333;
+            border-top-color: #f97316;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* ── Settings modal ── */
+        .settings-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: #0a0a0fee;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .settings-overlay.open { display: flex; align-items: center; justify-content: center; }
+
+        .settings-box {
+            width: 100%;
+            max-width: 400px;
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+        }
+
+        .settings-header h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #1a1a2a;
+        }
+
+        .settings-row:last-child { border-bottom: none; }
+
+        .settings-label {
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+
+        .settings-sublabel {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 0.1rem;
+        }
+
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #2a2a3a;
+            border-radius: 24px;
+            transition: background 0.25s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #666;
+            border-radius: 50%;
+            left: 3px;
+            bottom: 3px;
+            transition: all 0.25s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #22c55e44;
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            background: #22c55e;
+            transform: translateX(20px);
+        }
+
+        .settings-time-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #1a1a2a;
+        }
+
+        .settings-time-row input[type="time"] {
+            background: #0a0a0f;
+            border: 1px solid #222;
+            color: #ccc;
+            border-radius: 8px;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .settings-time-row input[type="time"]:focus { border-color: #f97316; }
+
+        .settings-time-sep {
+            color: #555;
+            font-size: 0.8rem;
+        }
+
+        .btn-settings-save {
+            display: block;
+            width: 100%;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #f97316;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-settings-save:active { transform: scale(0.97); }
+
+        .settings-link {
+            color: #f97316;
+            cursor: pointer;
+            text-decoration: none;
+            margin-left: 0.5rem;
+        }
+
         /* ── Small phones ── */
         @media (max-width: 380px) {
             .container { padding: 0.7rem; }
@@ -1305,6 +1696,7 @@
             <div class="tabs">
                 <button class="tab active" id="tabSearch" onclick="switchTab('search')">Rechercher</button>
                 <button class="tab" id="tabEvents" onclick="switchTab('events')">Mes evenements</button>
+                <button class="tab" id="tabCalendar" onclick="switchTab('calendar')">Calendrier</button>
             </div>
 
             <!-- Tab: Rechercher -->
@@ -1325,11 +1717,45 @@
 
             <!-- Tab: Mes evenements -->
             <div class="tab-content" id="tabContentEvents" style="display:none">
+                <div class="pull-to-refresh" id="pullToRefresh">
+                    <div class="ptr-spinner"></div>
+                    <span>Actualisation...</span>
+                </div>
                 <div class="section-header">
                     <span class="tab-desc"><span id="eventsCount">0</span> evenement(s) surveille(s)</span>
                     <button class="btn-add" onclick="openForm()">+ Ajouter</button>
                 </div>
+                <div class="filter-bar" id="filterBar">
+                    <select id="filterSort" onchange="renderEvents()">
+                        <option value="date">Date (proche)</option>
+                        <option value="name">Nom (A-Z)</option>
+                        <option value="newest">Ajout recent</option>
+                    </select>
+                    <select id="filterType" onchange="renderEvents()">
+                        <option value="all">Tous types</option>
+                        <option value="concert">Concert</option>
+                        <option value="sport">Sport</option>
+                    </select>
+                    <select id="filterStatus" onchange="renderEvents()">
+                        <option value="all">Tous statuts</option>
+                        <option value="active">Actif</option>
+                        <option value="paused">En pause</option>
+                    </select>
+                </div>
                 <div class="events-list" id="eventsList"></div>
+            </div>
+
+            <!-- Tab: Calendrier -->
+            <div class="tab-content" id="tabContentCalendar" style="display:none">
+                <div class="calendar-wrapper">
+                    <div class="calendar-nav">
+                        <button class="calendar-nav-btn" onclick="calendarPrevMonth()">&larr;</button>
+                        <span class="calendar-month-label" id="calendarMonthLabel"></span>
+                        <button class="calendar-nav-btn" onclick="calendarNextMonth()">&rarr;</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                    <div class="calendar-day-events" id="calendarDayEvents"></div>
+                </div>
             </div>
         </div>
 
@@ -1380,6 +1806,43 @@
                 </div>
                 <button class="btn-submit" id="btnSave" onclick="saveEvent()">Ajouter</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ── Settings overlay ── -->
+    <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-box">
+            <div class="settings-header">
+                <h3>Parametres</h3>
+                <button class="btn-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <div class="settings-label">Telegram</div>
+                    <div class="settings-sublabel">Notifications via Telegram</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="settingsTelegram">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <div class="settings-label">Heures silencieuses</div>
+                    <div class="settings-sublabel">Pas de notifications pendant ces heures</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="settingsQuietEnabled">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-time-row" id="quietTimesRow" style="display:none">
+                <span class="settings-label">De</span>
+                <input type="time" id="settingsQuietStart" value="22:00">
+                <span class="settings-time-sep">a</span>
+                <input type="time" id="settingsQuietEnd" value="07:00">
+            </div>
+            <button class="btn-settings-save" onclick="saveSettings()">Enregistrer</button>
         </div>
     </div>
 
@@ -1947,6 +2410,40 @@
         const EVENTS_PER_PAGE = 3;
         let currentPage = 0;
 
+        function getFilteredEvents() {
+            let filtered = [...events];
+
+            // Filter by type
+            const filterType = document.getElementById('filterType')?.value || 'all';
+            if (filterType !== 'all') {
+                filtered = filtered.filter(ev => (ev.type || 'concert') === filterType);
+            }
+
+            // Filter by status
+            const filterStatus = document.getElementById('filterStatus')?.value || 'all';
+            if (filterStatus === 'active') {
+                filtered = filtered.filter(ev => ev.active);
+            } else if (filterStatus === 'paused') {
+                filtered = filtered.filter(ev => !ev.active);
+            }
+
+            // Sort
+            const sortBy = document.getElementById('filterSort')?.value || 'date';
+            if (sortBy === 'date') {
+                filtered.sort((a, b) => {
+                    const da = getEventDates(a)[0]?.date || '9999';
+                    const db = getEventDates(b)[0]?.date || '9999';
+                    return da.localeCompare(db);
+                });
+            } else if (sortBy === 'name') {
+                filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            } else if (sortBy === 'newest') {
+                filtered.reverse();
+            }
+
+            return filtered;
+        }
+
         function renderEvents() {
             const list = document.getElementById('eventsList');
             // Update counter in tab
@@ -1956,16 +2453,18 @@
             const tabBtn = document.getElementById('tabEvents');
             if (tabBtn) tabBtn.textContent = `Mes evenements (${events.length})`;
 
-            if (events.length === 0) {
+            const filtered = getFilteredEvents();
+
+            if (filtered.length === 0) {
                 list.innerHTML = '<div class="empty-state">Aucun evenement surveille<br><br>Utilise l\'onglet "Rechercher" pour trouver des concerts</div>';
                 return;
             }
 
-            const totalPages = Math.ceil(events.length / EVENTS_PER_PAGE);
+            const totalPages = Math.ceil(filtered.length / EVENTS_PER_PAGE);
             if (currentPage >= totalPages) currentPage = totalPages - 1;
             if (currentPage < 0) currentPage = 0;
             const start = currentPage * EVENTS_PER_PAGE;
-            const pageEvents = events.slice(start, start + EVENTS_PER_PAGE);
+            const pageEvents = filtered.slice(start, start + EVENTS_PER_PAGE);
 
             let html = pageEvents.map(ev => {
                 const bc = ev.active ? 'badge-active' : 'badge-paused';
@@ -1985,7 +2484,7 @@
                 }
 
                 return `
-                    <div class="event-card ${cc}">
+                    <div class="event-card ${cc}" data-event-id="${esc(ev.id)}">
                         <div class="event-top">
                             <span class="event-name">${esc(ev.name)}</span>
                             <span class="badge ${bc}">${bt}</span>
@@ -1999,6 +2498,8 @@
                         <div class="event-actions-row">
                             <button onclick="toggleEvent('${ev.id}')">${ev.active ? 'Pause' : 'Activer'}</button>
                             <button onclick="editEvent('${ev.id}')">Modifier</button>
+                            <button class="btn-share" onclick="shareEvent('${ev.id}')">Partager</button>
+                            <button class="btn-cal" onclick="exportCalendar('${ev.id}')">Calendrier</button>
                             <button class="btn-del" onclick="deleteEvent('${ev.id}')">Supprimer</button>
                         </div>
                     </div>`;
@@ -2014,6 +2515,11 @@
             }
 
             list.innerHTML = html;
+
+            // Attach swipe handlers on mobile
+            if ('ontouchstart' in window) {
+                initSwipeToDelete();
+            }
         }
 
         function goPage(page) {
@@ -2408,8 +2914,11 @@
         function switchTab(tab) {
             document.getElementById('tabSearch').classList.toggle('active', tab === 'search');
             document.getElementById('tabEvents').classList.toggle('active', tab === 'events');
+            document.getElementById('tabCalendar').classList.toggle('active', tab === 'calendar');
             document.getElementById('tabContentSearch').style.display = tab === 'search' ? '' : 'none';
             document.getElementById('tabContentEvents').style.display = tab === 'events' ? '' : 'none';
+            document.getElementById('tabContentCalendar').style.display = tab === 'calendar' ? '' : 'none';
+            if (tab === 'calendar') renderCalendar();
         }
 
         // ══════════════════════════════════════

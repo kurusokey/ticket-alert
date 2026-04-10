@@ -2,9 +2,31 @@
  * POST /api/agent/search — AI agent that finds events (concerts, sports, etc.) + ticket pages.
  *
  * Uses Claude API with web search tool to find real-time event info.
+ * Results are cached in KV for 1 hour to save API tokens.
  */
 
 const { jsonResponse, corsHeaders, readBody } = require("../../lib");
+
+// ── Lazy KV import ──
+let kv = null;
+function getKV() {
+  if (kv) return kv;
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    try { kv = require("@vercel/kv").kv; return kv; } catch { return null; }
+  }
+  return null;
+}
+
+// ── Normalize query for cache key: lowercase, trim, remove accents ──
+function normalizeQuery(q) {
+  return q
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") { corsHeaders(res); return res.end(); }
@@ -16,6 +38,19 @@ module.exports = async function handler(req, res) {
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) return jsonResponse(res, { error: "API key not configured" }, 500);
+
+  // ── Check search cache in KV ──
+  const store = getKV();
+  const cacheKey = `search_cache:${normalizeQuery(query)}`;
+
+  if (store) {
+    try {
+      const cached = await store.get(cacheKey);
+      if (cached && cached.timestamp && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+        return jsonResponse(res, { ok: true, cached: true, ...cached.data });
+      }
+    } catch { /* cache miss, proceed normally */ }
+  }
 
   try {
     const prompt = `Tu es un agent specialise dans la recherche de billetterie en France.
@@ -116,6 +151,13 @@ IMPORTANT :
     if (parsed.concerts && !parsed.events) {
       parsed.events = parsed.concerts;
       delete parsed.concerts;
+    }
+
+    // ── Save to KV cache ──
+    if (store) {
+      try {
+        await store.set(cacheKey, { timestamp: Date.now(), data: parsed });
+      } catch { /* cache write failure is non-critical */ }
     }
 
     return jsonResponse(res, { ok: true, ...parsed });
