@@ -634,6 +634,48 @@
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .toast.error { color: #ef4444; }
 
+        /* ── Tabs ── */
+        .tabs-container {
+            margin-bottom: 1.2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #1e1e2e;
+        }
+
+        .tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.8rem 0.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: #f97316;
+            border-bottom-color: #f97316;
+        }
+
+        .tab:active { color: #fb923c; }
+
+        .tab-desc {
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 0.8rem;
+        }
+
+        .tab-content {
+            min-height: 150px;
+        }
+
         /* ── AI Search ── */
         .search-section {
             margin-bottom: 1.2rem;
@@ -1239,26 +1281,37 @@
             <div class="log-container" id="logContainer" style="display:none"></div>
         </div>
 
-        <!-- ── Events (right column on desktop) ── -->
-        <div class="events-column">
-            <!-- ── AI Search ── -->
-            <div class="search-section">
-                <div class="search-bar">
-                    <input type="text" id="searchArtist" placeholder="Rechercher un artiste..." class="search-input">
-                    <button class="search-btn" id="searchBtn" onclick="searchArtist()">Rechercher</button>
-                </div>
-                <div id="searchResults"></div>
-                <div id="searchLoading" style="display:none" class="search-loading">
-                    <div class="search-spinner"></div>
-                    <span>Recherche en cours...</span>
+        <!-- ── Tabs ── -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" id="tabSearch" onclick="switchTab('search')">Rechercher</button>
+                <button class="tab" id="tabEvents" onclick="switchTab('events')">Mes evenements</button>
+            </div>
+
+            <!-- Tab: Rechercher -->
+            <div class="tab-content" id="tabContentSearch">
+                <div class="search-section">
+                    <p class="tab-desc">Trouve des concerts et ajoute-les a ta surveillance</p>
+                    <div class="search-bar">
+                        <input type="text" id="searchArtist" placeholder="Nom de l'artiste..." class="search-input">
+                        <button class="search-btn" id="searchBtn" onclick="searchArtist()">Rechercher</button>
+                    </div>
+                    <div id="searchResults"></div>
+                    <div id="searchLoading" style="display:none" class="search-loading">
+                        <div class="search-spinner"></div>
+                        <span>L'agent IA cherche sur le web...</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="section-header">
-                <span class="section-title">Evenements</span>
-                <button class="btn-add" onclick="openForm()">+ Ajouter</button>
+            <!-- Tab: Mes evenements -->
+            <div class="tab-content" id="tabContentEvents" style="display:none">
+                <div class="section-header">
+                    <span class="tab-desc"><span id="eventsCount">0</span> evenement(s) surveille(s)</span>
+                    <button class="btn-add" onclick="openForm()">+ Ajouter</button>
+                </div>
+                <div class="events-list" id="eventsList"></div>
             </div>
-            <div class="events-list" id="eventsList"></div>
         </div>
 
         </div><!-- /desktop-layout -->
@@ -1861,8 +1914,15 @@
 
         function renderEvents() {
             const list = document.getElementById('eventsList');
+            // Update counter in tab
+            const counter = document.getElementById('eventsCount');
+            if (counter) counter.textContent = events.length;
+            // Update tab badge
+            const tabBtn = document.getElementById('tabEvents');
+            if (tabBtn) tabBtn.textContent = `Mes evenements (${events.length})`;
+
             if (events.length === 0) {
-                list.innerHTML = '<div class="empty-state">Aucun evenement surveille</div>';
+                list.innerHTML = '<div class="empty-state">Aucun evenement surveille<br><br>Utilise l\'onglet "Rechercher" pour trouver des concerts</div>';
                 return;
             }
 
@@ -2307,6 +2367,17 @@
         }
 
         // ══════════════════════════════════════
+        // TABS
+        // ══════════════════════════════════════
+
+        function switchTab(tab) {
+            document.getElementById('tabSearch').classList.toggle('active', tab === 'search');
+            document.getElementById('tabEvents').classList.toggle('active', tab === 'events');
+            document.getElementById('tabContentSearch').style.display = tab === 'search' ? '' : 'none';
+            document.getElementById('tabContentEvents').style.display = tab === 'events' ? '' : 'none';
+        }
+
+        // ══════════════════════════════════════
         // AI AGENT SEARCH
         // ══════════════════════════════════════
 
@@ -2408,12 +2479,16 @@
                 body: JSON.stringify(ev),
             });
 
-            showToast('Evenement ajoute');
+            showToast('Evenement ajoute — voir "Mes evenements"');
             loadEvents();
 
             // Mark button as added
             const btn = document.querySelectorAll('.btn-add-result')[index];
             if (btn) { btn.textContent = 'Ajoute !'; btn.disabled = true; btn.style.opacity = '0.5'; }
+
+            // Flash the events tab to signal
+            const tabBtn = document.getElementById('tabEvents');
+            if (tabBtn) { tabBtn.style.color = '#22c55e'; setTimeout(() => tabBtn.style.color = '', 2000); }
         }
 
         // Allow Enter key to trigger search
