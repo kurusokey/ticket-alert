@@ -277,6 +277,18 @@
             letter-spacing: 1px;
         }
 
+        .btn-cleanup {
+            background: none;
+            border: 1px solid #333;
+            color: #888;
+            border-radius: 8px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .btn-cleanup:active { border-color: #f97316; color: #f97316; }
+        .btn-cleanup:disabled { opacity: 0.4; }
+
         .btn-add {
             background: #f97316;
             color: #000;
@@ -1733,7 +1745,10 @@
                 </div>
                 <div class="section-header">
                     <span class="tab-desc"><span id="eventsCount">0</span> evenement(s) surveille(s)</span>
-                    <button class="btn-add" onclick="openForm()">+ Ajouter</button>
+                    <div style="display:flex;gap:0.4rem">
+                        <button class="btn-cleanup" id="btnCleanup" onclick="cleanupEvents()">Nettoyer</button>
+                        <button class="btn-add" onclick="openForm()">+ Ajouter</button>
+                    </div>
                 </div>
                 <div class="filter-bar" id="filterBar">
                     <select id="filterSort" onchange="renderEvents()">
@@ -2920,6 +2935,29 @@
         // ══════════════════════════════════════
         // TABS
         // ══════════════════════════════════════
+
+        async function cleanupEvents() {
+            const btn = document.getElementById('btnCleanup');
+            btn.disabled = true;
+            btn.textContent = 'Nettoyage...';
+            try {
+                const res = await fetch(`${API}/api/events/cleanup`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast(data.message);
+                    loadEvents();
+                } else {
+                    showToast(data.error || 'Erreur', true);
+                }
+            } catch (e) {
+                showToast('Erreur de connexion', true);
+            }
+            btn.disabled = false;
+            btn.textContent = 'Nettoyer';
+        }
 
         function switchTab(tab) {
             document.getElementById('tabSearch').classList.toggle('active', tab === 'search');
