@@ -161,7 +161,7 @@ Ne retourne QUE le JSON, rien d'autre.`;
       return jsonResponse(res, { error: "Failed to parse Claude response", raw: responseText }, 500);
     }
 
-    return jsonResponse(res, { ok: true, ...parsed });
+    return jsonResponse(res, { ok: true, ...parsed, _sources: siteResults.map(r => ({ site: r.site, contentLen: (r.content || "").length, linksLen: (r.links || []).length })) });
 
   } catch (err) {
     return jsonResponse(res, { error: err.message }, 500);
