@@ -1,8 +1,7 @@
 /**
- * POST /api/agent/search — AI agent that finds concerts + ticket pages.
+ * POST /api/agent/search — AI agent that finds events (concerts, sports, etc.) + ticket pages.
  *
- * Uses Claude API with web search tool to find real-time concert info.
- * No scraping needed — Claude searches the web directly.
+ * Uses Claude API with web search tool to find real-time event info.
  */
 
 const { jsonResponse, corsHeaders, readBody } = require("../../lib");
@@ -12,37 +11,55 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return jsonResponse(res, { error: "POST only" }, 405);
 
   const body = await readBody(req);
-  const artist = (body.artist || "").trim();
-  if (!artist) return jsonResponse(res, { error: "Nom d'artiste requis" }, 400);
+  const query = (body.artist || body.query || "").trim();
+  if (!query) return jsonResponse(res, { error: "Recherche requise" }, 400);
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) return jsonResponse(res, { error: "API key not configured" }, 500);
 
   try {
-    const prompt = `Recherche sur le web les concerts et la billetterie pour l'artiste "${artist}" en France.
+    const prompt = `Tu es un agent specialise dans la recherche de billetterie en France.
 
-Cherche specifiquement :
-1. Les dates de concerts prevues en France (2025, 2026, 2027)
-2. Les salles / lieux
-3. Les URLs EXACTES des pages de billetterie (ticketmaster.fr, fnacspectacles.com, parisladefense-arena.com, accorarenaparis.com, seetickets.com, etc.)
-4. Le statut de la vente (en vente, prevente, bientot, complet)
-5. La fourchette de prix si disponible
+L'utilisateur cherche : "${query}"
+
+Determine d'abord s'il s'agit :
+- D'un ARTISTE / GROUPE (concert, spectacle, festival)
+- D'une EQUIPE SPORTIVE (football, rugby, basket, etc.)
+- D'un EVENEMENT specifique
+
+Puis recherche sur le web :
+
+**Si c'est une equipe sportive (ex: PSG, Paris FC, Red Star, OM, OL...) :**
+- Les PROCHAINS matchs a domicile (les plus proches dans le temps)
+- Le stade / lieu
+- L'adversaire pour chaque match
+- Les URLs des pages de billetterie OFFICIELLES du club (ex: billetterie.psg.fr, parisfootballclub.com/billetterie, redstarsfc.fr, etc.) ou des revendeurs autorises (ticketmaster.fr, fnacspectacles.com)
+- Le championnat / competition (Ligue 1, Ligue 2, Coupe de France, Champions League, etc.)
+
+**Si c'est un artiste / concert :**
+- Les dates de concerts en France
+- Les salles / lieux
+- Les URLs EXACTES des pages de billetterie
+- Le statut de la vente
 
 Reponds UNIQUEMENT en JSON valide avec cette structure :
 {
-  "artist": "Nom exact de l'artiste",
+  "query": "${query}",
+  "type": "concert" | "sport" | "event",
   "found": true ou false,
-  "concerts": [
+  "events": [
     {
-      "venue": "Nom de la salle",
+      "name": "Nom de l'evenement (ex: 'PSG vs Marseille' ou 'Celine Dion')",
+      "venue": "Nom du stade ou de la salle",
       "city": "Ville",
-      "dates": ["2026-09-12", "2026-09-16"],
+      "competition": "Ligue 1" ou null (pour les sports),
+      "dates": ["2026-04-12"],
       "ticket_urls": [
-        { "url": "https://...", "label": "Ticketmaster" }
+        { "url": "https://...", "label": "Billetterie officielle" }
       ],
-      "sale_date": "2026-04-10 10:00" ou null,
+      "sale_date": null,
       "status": "en_vente" | "prevente" | "bientot" | "complet",
-      "price_range": "45-120€" ou null
+      "price_range": "15-50€" ou null
     }
   ],
   "message": "Resume court pour l'utilisateur"
@@ -50,6 +67,7 @@ Reponds UNIQUEMENT en JSON valide avec cette structure :
 
 IMPORTANT :
 - Les URLs doivent etre de VRAIES URLs de pages de billetterie, pas des URLs inventees
+- Pour le sport, cherche les 3 a 5 prochains matchs A DOMICILE
 - Les dates au format YYYY-MM-DD
 - Ne retourne QUE le JSON, rien d'autre`;
 
@@ -63,7 +81,7 @@ IMPORTANT :
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 4096,
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }],
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -75,7 +93,6 @@ IMPORTANT :
 
     const claudeData = await claudeResponse.json();
 
-    // Extract text from the response (may have multiple content blocks)
     let responseText = "";
     for (const block of claudeData.content || []) {
       if (block.type === "text") {
@@ -84,16 +101,21 @@ IMPORTANT :
     }
 
     if (!responseText) {
-      return jsonResponse(res, { ok: true, found: false, concerts: [], message: "Pas de reponse de l'agent" });
+      return jsonResponse(res, { ok: true, found: false, events: [], message: "Pas de reponse de l'agent" });
     }
 
-    // Parse JSON from Claude's response
     let parsed;
     try {
       const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[1] : responseText);
     } catch (e) {
       return jsonResponse(res, { error: "Failed to parse response", raw: responseText.substring(0, 500) }, 500);
+    }
+
+    // Normalize: support both "concerts" and "events" keys
+    if (parsed.concerts && !parsed.events) {
+      parsed.events = parsed.concerts;
+      delete parsed.concerts;
     }
 
     return jsonResponse(res, { ok: true, ...parsed });
