@@ -2307,6 +2307,126 @@
         }
 
         // ══════════════════════════════════════
+        // AI AGENT SEARCH
+        // ══════════════════════════════════════
+
+        let searchResultsData = [];
+
+        async function searchArtist() {
+            const input = document.getElementById('searchArtist');
+            const artist = input.value.trim();
+            if (!artist) { showToast('Entre un nom d\'artiste', true); return; }
+
+            const btn = document.getElementById('searchBtn');
+            const results = document.getElementById('searchResults');
+            const loading = document.getElementById('searchLoading');
+
+            btn.disabled = true;
+            btn.textContent = '...';
+            results.innerHTML = '';
+            loading.style.display = '';
+
+            try {
+                const res = await fetch(`${API}/api/agent/search`, {
+                    method: 'POST',
+                    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ artist }),
+                });
+                const data = await res.json();
+
+                loading.style.display = 'none';
+                btn.disabled = false;
+                btn.textContent = 'Rechercher';
+
+                if (!data.ok || !data.found) {
+                    results.innerHTML = `<div class="search-message">${esc(data.message || data.error || 'Aucun concert trouve')}</div>`;
+                    return;
+                }
+
+                searchResultsData = data.concerts || [];
+
+                if (searchResultsData.length === 0) {
+                    results.innerHTML = `<div class="search-message">${esc(data.message || 'Aucun concert trouve')}</div>`;
+                    return;
+                }
+
+                results.innerHTML = (data.message ? `<div class="search-message">${esc(data.message)}</div>` : '') +
+                    searchResultsData.map((c, i) => {
+                        const dates = (c.dates || []).map(d => fmtDate(d)).join(' · ');
+                        const statusClass = c.status || 'bientot';
+                        const statusLabels = { en_vente: 'En vente', prevente: 'Prevente', bientot: 'Bientot', complet: 'Complet' };
+                        const urlsHtml = (c.ticket_urls || []).map(u =>
+                            `<a href="${esc(u.url)}" target="_blank">${esc(u.label || 'Billets')}</a>`
+                        ).join('');
+
+                        return `
+                        <div class="search-result-card">
+                            <div class="result-artist">${esc(data.artist || artist)}</div>
+                            <div class="result-venue">${esc(c.venue || '')}${c.city ? ' — ' + esc(c.city) : ''}</div>
+                            ${dates ? `<div class="result-dates">${dates}</div>` : ''}
+                            ${c.price_range ? `<div class="result-dates">${esc(c.price_range)}</div>` : ''}
+                            <span class="result-status ${statusClass}">${statusLabels[c.status] || c.status || '?'}</span>
+                            ${urlsHtml ? `<div class="result-urls">${urlsHtml}</div>` : ''}
+                            ${c.status !== 'complet' ? `<button class="btn-add-result" onclick="addFromSearch(${i})">+ Ajouter a mes evenements</button>` : ''}
+                        </div>`;
+                    }).join('');
+
+            } catch (e) {
+                loading.style.display = 'none';
+                btn.disabled = false;
+                btn.textContent = 'Rechercher';
+                results.innerHTML = `<div class="search-message">Erreur: ${esc(e.message)}</div>`;
+            }
+        }
+
+        function addFromSearch(index) {
+            const c = searchResultsData[index];
+            if (!c) return;
+
+            const artist = document.getElementById('searchArtist').value.trim();
+            const ev = {
+                id: slugify(artist + '-' + (c.venue || '')) + '-' + Date.now().toString(36),
+                name: artist.toUpperCase() + (c.venue ? ' — ' + c.venue : ''),
+                venue: c.venue || '',
+                dates: (c.dates || []).map(d => ({ date: d, tickets: 2 })),
+                sale_date: c.sale_date || null,
+                urls: (c.ticket_urls || []).map(u => ({ url: u.url, label: u.label || '' })),
+                url: c.ticket_urls?.[0]?.url || '',
+                closed_marker: null,
+                active: true,
+            };
+
+            // Save locally
+            const stored = lsGetEvents();
+            stored.push(ev);
+            lsSaveEvents(stored);
+
+            // Save to API
+            apiCall('/api/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ev),
+            });
+
+            showToast('Evenement ajoute');
+            loadEvents();
+
+            // Mark button as added
+            const btn = document.querySelectorAll('.btn-add-result')[index];
+            if (btn) { btn.textContent = 'Ajoute !'; btn.disabled = true; btn.style.opacity = '0.5'; }
+        }
+
+        // Allow Enter key to trigger search
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('searchArtist');
+            if (input) {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') searchArtist();
+                });
+            }
+        });
+
+        // ══════════════════════════════════════
         // INIT
         // ══════════════════════════════════════
 
