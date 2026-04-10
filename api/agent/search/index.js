@@ -5,17 +5,7 @@
  * Results are cached in KV for 1 hour to save API tokens.
  */
 
-const { jsonResponse, corsHeaders, readBody } = require("../../lib");
-
-// ── Lazy KV import ──
-let kv = null;
-function getKV() {
-  if (kv) return kv;
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    try { kv = require("@vercel/kv").kv; return kv; } catch { return null; }
-  }
-  return null;
-}
+const { jsonResponse, corsHeaders, readBody, getKV } = require("../../lib");
 
 // ── Normalize query for cache key: lowercase, trim, remove accents ──
 function normalizeQuery(q) {
@@ -29,10 +19,12 @@ function normalizeQuery(q) {
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 module.exports = async function handler(req, res) {
-  if (req.method === "OPTIONS") { corsHeaders(res); return res.end(); }
+  if (req.method === "OPTIONS") { corsHeaders(res); res.statusCode = 200; return res.end(); }
   if (req.method !== "POST") return jsonResponse(res, { error: "POST only" }, 405);
 
   const body = await readBody(req);
+  if (body._error) return jsonResponse(res, { error: body._error }, 413);
+
   const query = (body.artist || body.query || "").trim();
   if (!query) return jsonResponse(res, { error: "Recherche requise" }, 400);
 
@@ -106,6 +98,10 @@ IMPORTANT :
 - Les dates au format YYYY-MM-DD
 - Ne retourne QUE le JSON, rien d'autre`;
 
+    // AbortController with 25s timeout for Claude API
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -119,11 +115,13 @@ IMPORTANT :
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }],
         messages: [{ role: "user", content: prompt }],
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (!claudeResponse.ok) {
-      const err = await claudeResponse.text();
-      return jsonResponse(res, { error: `Claude API error: ${claudeResponse.status}`, details: err }, 500);
+      console.error("Claude API error:", claudeResponse.status, await claudeResponse.text());
+      return jsonResponse(res, { error: "Erreur du service de recherche" }, 500);
     }
 
     const claudeData = await claudeResponse.json();
@@ -144,7 +142,7 @@ IMPORTANT :
       const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[1] : responseText);
     } catch (e) {
-      return jsonResponse(res, { error: "Failed to parse response", raw: responseText.substring(0, 500) }, 500);
+      return jsonResponse(res, { error: "Erreur du service de recherche" }, 500);
     }
 
     // Normalize: support both "concerts" and "events" keys
@@ -163,6 +161,7 @@ IMPORTANT :
     return jsonResponse(res, { ok: true, ...parsed });
 
   } catch (err) {
-    return jsonResponse(res, { error: err.message }, 500);
+    console.error(err);
+    return jsonResponse(res, { error: "Erreur interne" }, 500);
   }
 };

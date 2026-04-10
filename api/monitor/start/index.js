@@ -27,6 +27,7 @@ module.exports = async function handler(req, res) {
   }
 
   const userId = getUserId(req);
+  if (!userId) return jsonResponse(res, { ok: false, error: "Authentification requise" }, 401);
 
   try {
     const status = await getStatus(userId);
@@ -54,10 +55,11 @@ module.exports = async function handler(req, res) {
       .map((ev) => ev.name)
       .join(", ");
 
-    await sendTelegram(`🔍 Ticket Alert demarre\n${activeNames || "Aucun evenement actif"}`);
+    await sendTelegram(`Ticket Alert demarre\n${activeNames || "Aucun evenement actif"}`);
 
     return jsonResponse(res, { ok: true, message: "Demarree" });
   } catch (err) {
-    return jsonResponse(res, { error: err.message }, 500);
+    console.error(err);
+    return jsonResponse(res, { error: "Erreur interne" }, 500);
   }
 };

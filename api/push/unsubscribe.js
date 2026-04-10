@@ -23,9 +23,11 @@ module.exports = async function handler(req, res) {
   }
 
   const userId = getUserId(req);
+  if (!userId) return jsonResponse(res, { ok: false, error: "Authentification requise" }, 401);
 
   try {
     const body = await readBody(req);
+    if (body._error) return jsonResponse(res, { error: body._error }, 413);
 
     if (!body.endpoint) {
       return jsonResponse(res, { error: "Missing endpoint" }, 400);
@@ -34,6 +36,7 @@ module.exports = async function handler(req, res) {
     await removePushSub(userId, body.endpoint);
     return jsonResponse(res, { ok: true });
   } catch (err) {
-    return jsonResponse(res, { error: err.message }, 500);
+    console.error(err);
+    return jsonResponse(res, { error: "Erreur interne" }, 500);
   }
 };

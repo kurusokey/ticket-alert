@@ -17,6 +17,16 @@ const {
   saveEvents,
 } = require("../lib");
 
+// ── Input validation ──
+function validateEvent(body) {
+  if (!body || typeof body !== 'object') return "Donnees invalides";
+  if (!body.name || typeof body.name !== 'string' || body.name.length > 300) return "Nom requis (max 300 caracteres)";
+  if (body.id && (typeof body.id !== 'string' || body.id.length > 300)) return "ID invalide";
+  if (body.urls && (!Array.isArray(body.urls) || body.urls.length > 20)) return "Max 20 URLs";
+  if (body.dates && (!Array.isArray(body.dates) || body.dates.length > 50)) return "Max 50 dates";
+  return null; // valid
+}
+
 module.exports = async function handler(req, res) {
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -33,9 +43,19 @@ module.exports = async function handler(req, res) {
       return jsonResponse(res, events);
     }
 
+    // Auth required for POST, PUT, DELETE
+    if (!userId) return jsonResponse(res, { ok: false, error: "Authentification requise" }, 401);
+
     if (req.method === "POST") {
       const body = await readBody(req);
+      if (body._error) return jsonResponse(res, { error: body._error }, 413);
+
+      const validationError = validateEvent(body);
+      if (validationError) return jsonResponse(res, { error: validationError }, 400);
+
       const events = await getEvents(userId);
+      if (events.length >= 100) return jsonResponse(res, { error: "Maximum 100 evenements atteint" }, 400);
+
       events.push(body);
       await saveEvents(userId, events);
       return jsonResponse(res, { ok: true });
@@ -43,6 +63,11 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "PUT") {
       const body = await readBody(req);
+      if (body._error) return jsonResponse(res, { error: body._error }, 413);
+
+      const validationError = validateEvent(body);
+      if (validationError) return jsonResponse(res, { error: validationError }, 400);
+
       const events = await getEvents(userId);
       let updated = false;
       for (let i = 0; i < events.length; i++) {
@@ -53,6 +78,7 @@ module.exports = async function handler(req, res) {
         }
       }
       if (!updated) {
+        if (events.length >= 100) return jsonResponse(res, { error: "Maximum 100 evenements atteint" }, 400);
         events.push(body);
       }
       await saveEvents(userId, events);
@@ -67,6 +93,7 @@ module.exports = async function handler(req, res) {
 
       if (!eventId) {
         const body = await readBody(req);
+        if (body._error) return jsonResponse(res, { error: body._error }, 413);
         eventId = body.id;
       }
 
@@ -82,6 +109,7 @@ module.exports = async function handler(req, res) {
 
     return jsonResponse(res, { error: "Method not allowed" }, 405);
   } catch (err) {
-    return jsonResponse(res, { error: err.message }, 500);
+    console.error(err);
+    return jsonResponse(res, { error: "Erreur interne" }, 500);
   }
 };

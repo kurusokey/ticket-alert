@@ -25,6 +25,7 @@ module.exports = async function handler(req, res) {
     const status = await getStatus(userId);
     return jsonResponse(res, status);
   } catch (err) {
-    return jsonResponse(res, { error: err.message }, 500);
+    console.error(err);
+    return jsonResponse(res, { error: "Erreur interne" }, 500);
   }
 };

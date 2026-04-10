@@ -1,23 +1,16 @@
 /**
  * GET/POST /api/settings — User notification preferences.
  *
- * GET  → returns current settings (with defaults)
- * POST → merges body into existing settings and saves
+ * GET  -> returns current settings (with defaults)
+ * POST -> merges body into existing settings and saves
  */
 
-const { getUserId, jsonResponse, corsHeaders, readBody } = require("../lib");
+const { getUserId, jsonResponse, corsHeaders, readBody, getKV } = require("../lib");
 
-let kv = null;
-function getKV() {
-  if (kv) return kv;
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    try { kv = require("@vercel/kv").kv; return kv; } catch { return null; }
-  }
-  return null;
-}
+const ALLOWED_SETTINGS = ['scan_interval', 'telegram_enabled', 'push_enabled', 'quiet_hours'];
 
 module.exports = async function handler(req, res) {
-  if (req.method === "OPTIONS") { corsHeaders(res); return res.end(); }
+  if (req.method === "OPTIONS") { corsHeaders(res); res.statusCode = 200; return res.end(); }
 
   const userId = getUserId(req);
   const store = getKV();
@@ -33,19 +26,36 @@ module.exports = async function handler(req, res) {
   if (req.method === "GET") {
     let settings = defaults;
     if (store) {
-      const saved = await store.get(key);
-      if (saved) settings = { ...defaults, ...saved };
+      try {
+        const saved = await store.get(key);
+        if (saved) settings = { ...defaults, ...saved };
+      } catch { /* use defaults */ }
     }
     return jsonResponse(res, settings);
   }
 
   if (req.method === "POST") {
+    if (!userId) return jsonResponse(res, { ok: false, error: "Authentification requise" }, 401);
+
     const body = await readBody(req);
+    if (body._error) return jsonResponse(res, { error: body._error }, 413);
+
+    // Whitelist allowed keys
+    const filtered = {};
+    for (const k of ALLOWED_SETTINGS) {
+      if (k in body) filtered[k] = body[k];
+    }
+
     if (store) {
-      const current = await store.get(key) || defaults;
-      const updated = { ...current, ...body };
-      await store.set(key, updated);
-      return jsonResponse(res, { ok: true, settings: updated });
+      try {
+        const current = await store.get(key) || defaults;
+        const updated = { ...current, ...filtered };
+        await store.set(key, updated);
+        return jsonResponse(res, { ok: true, settings: updated });
+      } catch (err) {
+        console.error(err);
+        return jsonResponse(res, { error: "Erreur interne" }, 500);
+      }
     }
     return jsonResponse(res, { ok: false, error: "Storage non disponible" }, 500);
   }

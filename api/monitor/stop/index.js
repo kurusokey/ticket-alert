@@ -26,6 +26,7 @@ module.exports = async function handler(req, res) {
   }
 
   const userId = getUserId(req);
+  if (!userId) return jsonResponse(res, { ok: false, error: "Authentification requise" }, 401);
 
   try {
     const status = await getStatus(userId);
@@ -39,10 +40,11 @@ module.exports = async function handler(req, res) {
 
     await saveStatus(userId, status);
 
-    await sendTelegram("⏹ Ticket Alert arrete");
+    await sendTelegram("Ticket Alert arrete");
 
     return jsonResponse(res, { ok: true, message: "Arretee" });
   } catch (err) {
-    return jsonResponse(res, { error: err.message }, 500);
+    console.error(err);
+    return jsonResponse(res, { error: "Erreur interne" }, 500);
   }
 };

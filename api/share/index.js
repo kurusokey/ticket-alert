@@ -1,27 +1,29 @@
 /**
- * GET /api/share?id={eventId}&pin={userPin} — Public share page for an event.
+ * GET /api/share?token={shareToken} — Public share page for an event.
  *
  * Returns an HTML page with event details + ticket purchase links.
- * No auth required (public share via pin).
+ * No auth required (public share via token).
  */
 
-const { corsHeaders } = require("../lib");
+const { corsHeaders, getKV, getEvents } = require("../lib");
 
-let kv = null;
-function getKV() {
-  if (kv) return kv;
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    try { kv = require("@vercel/kv").kv; return kv; } catch { return null; }
-  }
-  return null;
+// ── HTML escape to prevent XSS ──
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Validate and encode URL for href attributes ──
+function safeHref(url) {
+  const s = String(url || '').trim();
+  if (/^https?:\/\//i.test(s)) return encodeURI(s);
+  return '';
 }
 
 module.exports = async function handler(req, res) {
   const url = new URL(req.url, "http://localhost");
-  const eventId = url.searchParams.get("id");
-  const pin = url.searchParams.get("pin");
+  const token = url.searchParams.get("token");
 
-  if (!eventId || !pin) {
+  if (!token) {
     res.statusCode = 400;
     return res.end("Missing parameters");
   }
@@ -29,13 +31,27 @@ module.exports = async function handler(req, res) {
   const store = getKV();
   if (!store) { res.statusCode = 500; return res.end("Storage unavailable"); }
 
-  const events = await store.get(`u:${pin}:events`) || [];
-  const ev = events.find(e => e.id === eventId);
+  // Look up share token
+  const shareData = await store.get(`share:${token}`);
+  if (!shareData || !shareData.userId || !shareData.eventId) {
+    res.statusCode = 404;
+    return res.end("Share link not found or expired");
+  }
+
+  const events = await store.get(`u:${shareData.userId}:events`) || [];
+  const ev = events.find(e => e.id === shareData.eventId);
 
   if (!ev) { res.statusCode = 404; return res.end("Event not found"); }
 
   const dates = (ev.dates || []).map(d => typeof d === 'string' ? d : d.date).filter(Boolean);
   const urls = ev.urls || (ev.url ? [{url: ev.url, label: ''}] : []);
+
+  const linksHtml = urls.map(u => {
+    const href = safeHref(u.url || u);
+    if (!href) return '';
+    const label = escHtml(u.label || 'Acheter des billets');
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  }).filter(Boolean).join('\n');
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -43,7 +59,7 @@ module.exports = async function handler(req, res) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0a0a0f">
-<title>${ev.name || 'Event'} — goFindMyTickets</title>
+<title>${escHtml(ev.name || 'Event')} — goFindMyTickets</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
@@ -62,11 +78,11 @@ h1 span{color:#f97316}
 <body>
 <div class="card">
 <h1>go<span>Find</span>My<span>Tickets</span></h1>
-<div class="name">${ev.name || ''}</div>
-<div class="venue">${ev.venue || ''}</div>
-<div class="dates">${dates.join(' · ')}</div>
+<div class="name">${escHtml(ev.name || '')}</div>
+<div class="venue">${escHtml(ev.venue || '')}</div>
+<div class="dates">${dates.map(d => escHtml(d)).join(' · ')}</div>
 <div class="links">
-${urls.map(u => `<a href="${u.url || u}" target="_blank">${u.label || 'Acheter des billets'}</a>`).join('\n')}
+${linksHtml}
 </div>
 <div class="footer">Partage via goFindMyTickets</div>
 </div>

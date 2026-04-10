@@ -4,8 +4,11 @@
 
 const { getUserId, getEvents, corsHeaders } = require("../lib");
 
+// ── Sanitize ICS field values (strip special chars and newlines) ──
+const icsEscape = (s) => String(s || '').replace(/[,;\\]/g, ' ').replace(/[\r\n]+/g, ' ');
+
 module.exports = async function handler(req, res) {
-  if (req.method === "OPTIONS") { corsHeaders(res); return res.end(); }
+  if (req.method === "OPTIONS") { corsHeaders(res); res.statusCode = 200; return res.end(); }
 
   const userId = getUserId(req);
   const eventId = new URL(req.url, "http://localhost").searchParams.get("id");
@@ -25,12 +28,12 @@ module.exports = async function handler(req, res) {
     const dateStr = typeof d === 'string' ? d : d.date;
     if (!dateStr) continue;
     const dt = dateStr.replace(/-/g, '');
-    const uid = `${ev.id}-${dt}@gofindmytickets`;
+    const uid = `${icsEscape(ev.id)}-${dt}@gofindmytickets`;
     ics += `BEGIN:VEVENT\n`;
     ics += `UID:${uid}\n`;
     ics += `DTSTART;VALUE=DATE:${dt}\n`;
-    ics += `SUMMARY:${(ev.name || '').replace(/[,;\\]/g, ' ')}\n`;
-    ics += `LOCATION:${(ev.venue || '').replace(/[,;\\]/g, ' ')}\n`;
+    ics += `SUMMARY:${icsEscape(ev.name)}\n`;
+    ics += `LOCATION:${icsEscape(ev.venue)}\n`;
     if (ev.url || ev.urls?.[0]?.url) ics += `URL:${ev.url || ev.urls[0].url}\n`;
     ics += `END:VEVENT\n`;
   }
@@ -39,17 +42,20 @@ module.exports = async function handler(req, res) {
   if (ev.sale_date) {
     const saleDt = ev.sale_date.replace(/[-: ]/g, '').substring(0, 8);
     ics += `BEGIN:VEVENT\n`;
-    ics += `UID:${ev.id}-sale@gofindmytickets\n`;
+    ics += `UID:${icsEscape(ev.id)}-sale@gofindmytickets\n`;
     ics += `DTSTART;VALUE=DATE:${saleDt}\n`;
-    ics += `SUMMARY:🎫 Ouverture vente — ${(ev.name || '').replace(/[,;\\]/g, ' ')}\n`;
+    ics += `SUMMARY:Ouverture vente - ${icsEscape(ev.name)}\n`;
     ics += `END:VEVENT\n`;
   }
 
   ics += `END:VCALENDAR`;
 
+  // Sanitize filename
+  const safeId = (ev.id || 'event').replace(/[^a-z0-9_-]/gi, '_');
+
   corsHeaders(res);
   res.setHeader("Content-Type", "text/calendar; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="${ev.id}.ics"`);
+  res.setHeader("Content-Disposition", `attachment; filename="${safeId}.ics"`);
   res.statusCode = 200;
   res.end(ics);
 };

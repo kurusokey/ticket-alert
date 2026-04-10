@@ -43,8 +43,9 @@ function getWebPush() {
   }
 }
 
-// ── In-memory fallback cache ──
-const _cache = { events: null, status: null };
+// ── In-memory fallback cache (keyed by userId) ──
+const _cache = {};
+function getCacheKey(userId, type) { return (userId || '_global') + ':' + type; }
 
 // ── Config ──
 const EVENTS_FILE = path.join(__dirname, "..", "data.json");
@@ -104,10 +105,19 @@ function jsonResponse(res, data, code = 200) {
   res.end(JSON.stringify(data));
 }
 
-function readBody(req) {
+function readBody(req, maxBytes = 1024 * 1024) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on("data", (chunk) => chunks.push(chunk));
+    let totalSize = 0;
+    req.on("data", (chunk) => {
+      totalSize += chunk.length;
+      if (totalSize > maxBytes) {
+        req.destroy();
+        resolve({ _error: "Body too large" });
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => {
       try {
         const raw = Buffer.concat(chunks).toString("utf-8");
@@ -139,23 +149,24 @@ function _key(userId, key) {
 }
 
 async function getEvents(userId) {
+  const ck = getCacheKey(userId, 'events');
   const store = getKV();
   if (store) {
     try {
       const data = await store.get(_key(userId, "events"));
       if (data !== null && data !== undefined) {
-        _cache.events = data;
+        _cache[ck] = data;
         return Array.isArray(data) ? data : [];
       }
     } catch { /* fallback */ }
   }
-  if (_cache.events !== null) {
-    return [..._cache.events];
+  if (_cache[ck] !== null && _cache[ck] !== undefined) {
+    return [..._cache[ck]];
   }
   try {
     const raw = fs.readFileSync(EVENTS_FILE, "utf-8");
     const parsed = JSON.parse(raw);
-    _cache.events = parsed;
+    _cache[ck] = parsed;
     return [...parsed];
   } catch {
     return [];
@@ -163,7 +174,8 @@ async function getEvents(userId) {
 }
 
 async function saveEvents(userId, events) {
-  _cache.events = events;
+  const ck = getCacheKey(userId, 'events');
+  _cache[ck] = events;
   const store = getKV();
   if (store) {
     try {
@@ -173,18 +185,19 @@ async function saveEvents(userId, events) {
 }
 
 async function getStatus(userId) {
+  const ck = getCacheKey(userId, 'status');
   const store = getKV();
   if (store) {
     try {
       const data = await store.get(_key(userId, "status"));
       if (data !== null && data !== undefined) {
-        _cache.status = data;
+        _cache[ck] = data;
         return data;
       }
     } catch { /* fallback */ }
   }
-  if (_cache.status !== null) {
-    return { ..._cache.status };
+  if (_cache[ck] !== null && _cache[ck] !== undefined) {
+    return { ..._cache[ck] };
   }
   return {
     running: false,
@@ -197,7 +210,8 @@ async function getStatus(userId) {
 }
 
 async function saveStatus(userId, status) {
-  _cache.status = status;
+  const ck = getCacheKey(userId, 'status');
+  _cache[ck] = status;
   const store = getKV();
   if (store) {
     try {
@@ -518,11 +532,15 @@ async function sendTelegram(text) {
   if (!token || !chatId) return;
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
   } catch { /* silent */ }
 }
 
@@ -561,6 +579,18 @@ async function sendWebPush(userId, title, body, url) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// SHARE TOKEN
+// ═══════════════════════════════════════════════════════════
+
+async function createShareToken(userId, eventId) {
+  const store = getKV();
+  if (!store) return null;
+  const token = crypto.randomBytes(16).toString("hex");
+  await store.set(`share:${token}`, { userId, eventId, created: Date.now() });
+  return token;
+}
+
+// ═══════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════
 
@@ -571,6 +601,7 @@ module.exports = {
   jsonResponse,
   readBody,
   getUserId,
+  getKV,
   // KV Storage
   getEvents,
   saveEvents,
@@ -583,6 +614,8 @@ module.exports = {
   getPushSubs,
   savePushSub,
   removePushSub,
+  // Share
+  createShareToken,
   // Detection
   checkUrl,
   TICKET_PLATFORMS,
