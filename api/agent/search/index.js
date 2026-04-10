@@ -1,15 +1,20 @@
 const { jsonResponse, corsHeaders, readBody, getUserId } = require("../../lib");
 
-// French ticket/concert sites to search
-const SEARCH_SITES = [
-  { name: "Ticketmaster", searchUrl: (q) => `https://www.ticketmaster.fr/search?q=${encodeURIComponent(q)}` },
-  { name: "Fnac Spectacles", searchUrl: (q) => `https://www.fnacspectacles.com/search/?term=${encodeURIComponent(q)}` },
-  { name: "Paris La Defense Arena", searchUrl: (q) => `https://www.parisladefense-arena.com/?s=${encodeURIComponent(q)}` },
-  { name: "Accor Arena", searchUrl: (q) => `https://www.accorarenaparis.com/rechercher?s=${encodeURIComponent(q)}` },
-  { name: "Olympia", searchUrl: (q) => `https://www.olympiahall.com/?s=${encodeURIComponent(q)}` },
-  { name: "Zenith Paris", searchUrl: (q) => `https://www.zenith-paris.com/?s=${encodeURIComponent(q)}` },
-  { name: "SeeTickets", searchUrl: (q) => `https://www.seetickets.com/fr/search?q=${encodeURIComponent(q)}` },
-];
+// Search sources: DuckDuckGo HTML (no API key) + direct ticket sites
+function buildSearchSources(artist) {
+  const q = encodeURIComponent(artist);
+  const qConc = encodeURIComponent(artist + " concert 2025 2026 billets France");
+  return [
+    // DuckDuckGo HTML (most reliable, no blocking)
+    { name: "DuckDuckGo Concerts", url: `https://html.duckduckgo.com/html/?q=${qConc}` },
+    { name: "DuckDuckGo Billets", url: `https://html.duckduckgo.com/html/?q=${encodeURIComponent(artist + " billets ticketmaster fnac")}` },
+    // Direct ticket sites
+    { name: "Ticketmaster", url: `https://www.ticketmaster.fr/search?q=${q}` },
+    { name: "Paris La Defense Arena", url: `https://www.parisladefense-arena.com/?s=${q}` },
+    { name: "Accor Arena", url: `https://www.accorarenaparis.com/rechercher?s=${q}` },
+    { name: "Fnac Spectacles", url: `https://www.fnacspectacles.com/search/?term=${q}` },
+  ];
+}
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") { corsHeaders(res); return res.end(); }
@@ -23,13 +28,14 @@ module.exports = async function handler(req, res) {
   if (!ANTHROPIC_API_KEY) return jsonResponse(res, { error: "API key not configured" }, 500);
 
   try {
-    // Step 1: Fetch multiple ticket sites in parallel
+    // Step 1: Fetch multiple sources in parallel
+    const SEARCH_SITES = buildSearchSources(artist);
     const fetchResults = await Promise.allSettled(
       SEARCH_SITES.map(async (site) => {
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 8000);
-          const response = await fetch(site.searchUrl(artist), {
+          const response = await fetch(site.url, {
             headers: {
               "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
               "Accept-Language": "fr-FR,fr;q=0.9",
@@ -56,7 +62,7 @@ module.exports = async function handler(req, res) {
           });
           // Get main text content (trimmed)
           const textContent = $.text().replace(/\s+/g, " ").trim().substring(0, 3000);
-          return { site: site.name, url: site.searchUrl(artist), content: textContent.substring(0, 2000), links: links.slice(0, 30) };
+          return { site: site.name, url: site.url, content: textContent.substring(0, 2000), links: links.slice(0, 30) };
         } catch (e) {
           return { site: site.name, error: e.message, content: "" };
         }
