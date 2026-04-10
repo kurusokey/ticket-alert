@@ -634,6 +634,147 @@
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .toast.error { color: #ef4444; }
 
+        /* ── AI Search ── */
+        .search-section {
+            margin-bottom: 1.2rem;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-input {
+            flex: 1;
+            background: #111118;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .search-input:focus { border-color: #f97316; }
+        .search-input::placeholder { color: #3a3a4a; }
+
+        .search-btn {
+            background: #f97316;
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .search-btn:active { transform: scale(0.97); }
+        .search-btn:disabled { opacity: 0.5; }
+
+        .search-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 1.5rem;
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .search-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-top-color: #f97316;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .search-result-card {
+            background: #111118;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 0.6rem;
+        }
+
+        .search-result-card .result-artist {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .search-result-card .result-venue {
+            font-size: 0.85rem;
+            color: #f97316;
+            margin-top: 0.2rem;
+        }
+
+        .search-result-card .result-dates {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 0.3rem;
+        }
+
+        .search-result-card .result-status {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+            margin-top: 0.3rem;
+        }
+
+        .result-status.en_vente { background: #052e16; color: #22c55e; }
+        .result-status.prevente { background: #1a1600; color: #eab308; }
+        .result-status.bientot { background: #111118; color: #888; border: 1px solid #333; }
+        .result-status.complet { background: #1a0000; color: #ef4444; }
+
+        .search-result-card .result-urls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin-top: 0.5rem;
+        }
+
+        .search-result-card .result-urls a {
+            font-size: 0.75rem;
+            color: #0ea5e9;
+            text-decoration: none;
+            background: #0a1520;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        .search-result-card .btn-add-result {
+            display: block;
+            width: 100%;
+            margin-top: 0.6rem;
+            background: #22c55e;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            padding: 0.6rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .search-result-card .btn-add-result:active { transform: scale(0.97); }
+
+        .search-message {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
         /* ── Small phones ── */
         @media (max-width: 380px) {
             .container { padding: 0.7rem; }
@@ -1100,6 +1241,19 @@
 
         <!-- ── Events (right column on desktop) ── -->
         <div class="events-column">
+            <!-- ── AI Search ── -->
+            <div class="search-section">
+                <div class="search-bar">
+                    <input type="text" id="searchArtist" placeholder="Rechercher un artiste..." class="search-input">
+                    <button class="search-btn" id="searchBtn" onclick="searchArtist()">Rechercher</button>
+                </div>
+                <div id="searchResults"></div>
+                <div id="searchLoading" style="display:none" class="search-loading">
+                    <div class="search-spinner"></div>
+                    <span>Recherche en cours...</span>
+                </div>
+            </div>
+
             <div class="section-header">
                 <span class="section-title">Evenements</span>
                 <button class="btn-add" onclick="openForm()">+ Ajouter</button>
