@@ -1,20 +1,11 @@
-const { jsonResponse, corsHeaders, readBody, getUserId } = require("../../lib");
+/**
+ * POST /api/agent/search — AI agent that finds concerts + ticket pages.
+ *
+ * Uses Claude API with web search tool to find real-time concert info.
+ * No scraping needed — Claude searches the web directly.
+ */
 
-// Search sources: DuckDuckGo HTML (no API key) + direct ticket sites
-function buildSearchSources(artist) {
-  const q = encodeURIComponent(artist);
-  const qConc = encodeURIComponent(artist + " concert 2025 2026 billets France");
-  return [
-    // DuckDuckGo HTML (most reliable, no blocking)
-    { name: "DuckDuckGo Concerts", url: `https://html.duckduckgo.com/html/?q=${qConc}` },
-    { name: "DuckDuckGo Billets", url: `https://html.duckduckgo.com/html/?q=${encodeURIComponent(artist + " billets ticketmaster fnac")}` },
-    // Direct ticket sites
-    { name: "Ticketmaster", url: `https://www.ticketmaster.fr/search?q=${q}` },
-    { name: "Paris La Defense Arena", url: `https://www.parisladefense-arena.com/?s=${q}` },
-    { name: "Accor Arena", url: `https://www.accorarenaparis.com/rechercher?s=${q}` },
-    { name: "Fnac Spectacles", url: `https://www.fnacspectacles.com/search/?term=${q}` },
-  ];
-}
+const { jsonResponse, corsHeaders, readBody } = require("../../lib");
 
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") { corsHeaders(res); return res.end(); }
@@ -28,87 +19,19 @@ module.exports = async function handler(req, res) {
   if (!ANTHROPIC_API_KEY) return jsonResponse(res, { error: "API key not configured" }, 500);
 
   try {
-    // Step 1: Fetch multiple sources in parallel
-    const SEARCH_SITES = buildSearchSources(artist);
-    const fetchResults = await Promise.allSettled(
-      SEARCH_SITES.map(async (site) => {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 8000);
-          const response = await fetch(site.url, {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-              "Accept-Language": "fr-FR,fr;q=0.9",
-              "Accept": "text/html",
-            },
-            signal: controller.signal,
-            redirect: "follow",
-          });
-          clearTimeout(timeout);
-          if (!response.ok) return { site: site.name, error: `HTTP ${response.status}`, content: "" };
-          const html = await response.text();
-          const { load } = require("cheerio");
-          const $ = load(html);
+    const prompt = `Recherche sur le web les concerts et la billetterie pour l'artiste "${artist}" en France.
 
-          // Special handling for DuckDuckGo: extract structured results
-          const isDDG = site.url.includes("duckduckgo.com");
-          if (isDDG) {
-            const results = [];
-            $(".result").each(function(i) {
-              if (i >= 10) return;
-              const title = $(this).find(".result__title").text().trim();
-              const snippet = $(this).find(".result__snippet").text().trim();
-              let href = $(this).find(".result__a").attr("href") || "";
-              if (href.includes("uddg=")) {
-                try { href = decodeURIComponent(new URL(href, "https://duckduckgo.com").searchParams.get("uddg")); } catch {}
-              }
-              if (title) results.push(`${title}\n${href}\n${snippet}`);
-            });
-            return { site: site.name, url: site.url, content: results.join("\n\n"), links: [] };
-          }
-
-          // Regular sites: extract links and text
-          $("script, style, nav, footer, header, noscript").remove();
-          const links = [];
-          $("a[href]").each(function() {
-            let href = $(this).attr("href") || "";
-            const text = $(this).text().trim();
-            if (text && text.length > 3 && text.length < 200 && (href.startsWith("http://") || href.startsWith("https://"))) {
-              links.push(`[${text}](${href})`);
-            }
-          });
-          const textContent = $.text().replace(/\s+/g, " ").trim().substring(0, 3000);
-          return { site: site.name, url: site.url, content: textContent.substring(0, 2000), links: links.slice(0, 30) };
-        } catch (e) {
-          return { site: site.name, error: e.message, content: "" };
-        }
-      })
-    );
-
-    const siteResults = fetchResults
-      .filter(r => r.status === "fulfilled" && r.value.content)
-      .map(r => r.value);
-
-    // Step 2: Send to Claude API to extract structured concert info
-    const prompt = `Tu es un assistant specialise dans la recherche de concerts et de billetterie en France.
-
-L'utilisateur cherche des concerts de : **${artist}**
-
-Voici les resultats de recherche sur plusieurs sites de billetterie francais :
-
-${siteResults.map(r => `--- ${r.site} (${r.url || ''}) ---
-Contenu: ${r.content}
-Liens: ${(r.links || []).join("\n")}
-`).join("\n\n")}
-
-${siteResults.length === 0 ? "Aucun resultat trouve sur les sites de billetterie." : ""}
-
-A partir de ces resultats, extrais TOUTES les informations de concert pour **${artist}** :
+Cherche specifiquement :
+1. Les dates de concerts prevues en France (2025, 2026, 2027)
+2. Les salles / lieux
+3. Les URLs EXACTES des pages de billetterie (ticketmaster.fr, fnacspectacles.com, parisladefense-arena.com, accorarenaparis.com, seetickets.com, etc.)
+4. Le statut de la vente (en vente, prevente, bientot, complet)
+5. La fourchette de prix si disponible
 
 Reponds UNIQUEMENT en JSON valide avec cette structure :
 {
   "artist": "Nom exact de l'artiste",
-  "found": true/false,
+  "found": true ou false,
   "concerts": [
     {
       "venue": "Nom de la salle",
@@ -125,9 +48,10 @@ Reponds UNIQUEMENT en JSON valide avec cette structure :
   "message": "Resume court pour l'utilisateur"
 }
 
-Si tu ne trouves pas de concerts, mets found=false et un message explicatif.
-Les dates doivent etre au format YYYY-MM-DD.
-Ne retourne QUE le JSON, rien d'autre.`;
+IMPORTANT :
+- Les URLs doivent etre de VRAIES URLs de pages de billetterie, pas des URLs inventees
+- Les dates au format YYYY-MM-DD
+- Ne retourne QUE le JSON, rien d'autre`;
 
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -139,6 +63,7 @@ Ne retourne QUE le JSON, rien d'autre.`;
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 4096,
+        tools: [{ type: "web_search_20250305" }],
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -149,19 +74,29 @@ Ne retourne QUE le JSON, rien d'autre.`;
     }
 
     const claudeData = await claudeResponse.json();
-    const responseText = claudeData.content?.[0]?.text || "";
+
+    // Extract text from the response (may have multiple content blocks)
+    let responseText = "";
+    for (const block of claudeData.content || []) {
+      if (block.type === "text") {
+        responseText += block.text;
+      }
+    }
+
+    if (!responseText) {
+      return jsonResponse(res, { ok: true, found: false, concerts: [], message: "Pas de reponse de l'agent" });
+    }
 
     // Parse JSON from Claude's response
     let parsed;
     try {
-      // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[1] : responseText);
     } catch (e) {
-      return jsonResponse(res, { error: "Failed to parse Claude response", raw: responseText }, 500);
+      return jsonResponse(res, { error: "Failed to parse response", raw: responseText.substring(0, 500) }, 500);
     }
 
-    return jsonResponse(res, { ok: true, ...parsed, _sources: siteResults.map(r => ({ site: r.site, contentLen: (r.content || "").length, linksLen: (r.links || []).length })) });
+    return jsonResponse(res, { ok: true, ...parsed });
 
   } catch (err) {
     return jsonResponse(res, { error: err.message }, 500);
