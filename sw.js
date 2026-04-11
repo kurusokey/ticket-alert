@@ -1,5 +1,5 @@
 // goFindMyTickets — Service Worker v2
-const CACHE_NAME = 'gfmt-v37';
+const CACHE_NAME = 'gfmt-v38';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
