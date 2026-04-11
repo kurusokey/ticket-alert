@@ -120,8 +120,23 @@ IMPORTANT :
     clearTimeout(timeout);
 
     if (!claudeResponse.ok) {
-      console.error("Claude API error:", claudeResponse.status, await claudeResponse.text());
-      return jsonResponse(res, { error: "Erreur du service de recherche" }, 500);
+      const errBody = await claudeResponse.text();
+      console.error("Claude API error:", claudeResponse.status, errBody);
+
+      let userMsg = "Erreur du service de recherche";
+      if (claudeResponse.status === 429 || errBody.includes("rate_limit")) {
+        userMsg = "Trop de recherches — reessaie dans quelques secondes";
+      } else if (errBody.includes("usage limit") || errBody.includes("billing") || errBody.includes("regain access")) {
+        userMsg = "Quota de recherche atteint — le service sera disponible le mois prochain ou augmente ta limite sur console.anthropic.com";
+      } else if (claudeResponse.status === 401) {
+        userMsg = "Cle API invalide — contacte l'administrateur";
+      } else if (claudeResponse.status === 400) {
+        userMsg = "Requete invalide — reessaie avec un autre terme";
+      } else if (claudeResponse.status >= 500) {
+        userMsg = "Le service de recherche est temporairement indisponible";
+      }
+
+      return jsonResponse(res, { error: userMsg }, claudeResponse.status);
     }
 
     const claudeData = await claudeResponse.json();
@@ -162,6 +177,12 @@ IMPORTANT :
 
   } catch (err) {
     console.error(err);
-    return jsonResponse(res, { error: "Erreur interne" }, 500);
+    let userMsg = "Erreur interne";
+    if (err.name === "AbortError") {
+      userMsg = "La recherche a pris trop de temps — reessaie";
+    } else if (err.message?.includes("fetch")) {
+      userMsg = "Impossible de contacter le service de recherche";
+    }
+    return jsonResponse(res, { error: userMsg }, 500);
   }
 };
