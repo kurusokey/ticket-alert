@@ -10,8 +10,10 @@ const icsEscape = (s) => String(s || '').replace(/[,;\\]/g, ' ').replace(/[\r\n]
 module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") { corsHeaders(res); res.statusCode = 200; return res.end(); }
 
-  const userId = getUserId(req);
-  const eventId = new URL(req.url, "http://localhost").searchParams.get("id");
+  const url = new URL(req.url, "http://localhost");
+  const eventId = url.searchParams.get("id");
+  // Support both Authorization header and pin query param (window.open can't send headers)
+  const userId = getUserId(req) || url.searchParams.get("pin") || null;
   const events = await getEvents(userId);
   const ev = events.find(e => e.id === eventId);
 
