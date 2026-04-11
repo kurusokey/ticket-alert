@@ -1,10 +1,12 @@
 // goFindMyTickets — Service Worker v2
-const CACHE_NAME = 'gfmt-v35';
+const CACHE_NAME = 'gfmt-v36';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
+  '/styles/main.css',
+  '/js/app.js',
 ];
 
 // ── Install: pre-cache app shell ──
@@ -29,10 +31,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Network-first for API calls
+  // Network-first for API calls, cache GET responses for offline
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(event.request).then((response) => {
+        if (response.ok && event.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
