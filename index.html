@@ -13,6 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="goFMT">
     <script>(function(){var t=localStorage.getItem('gfmt_theme');if(t)document.documentElement.setAttribute('data-theme',t);else if(window.matchMedia('(prefers-color-scheme: light)').matches)document.documentElement.setAttribute('data-theme','light');})();</script>
     <link rel="stylesheet" href="/styles/main.css">
+    <style>body{font-family:-apple-system,sans-serif;background:#0a0a0f;color:#e0e0e0;margin:0}[hidden]{display:none!important}.auth-screen{position:fixed;inset:0;z-index:200;background:#0a0a0f;display:flex;align-items:center;justify-content:center}.auth-screen.hidden{display:none}</style>
 </head>
 <body>
     <!-- ── Auth screen ── -->
@@ -271,7 +272,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
-    // Force unregister old SW and reload if version mismatch
+    // Force unregister ALL old service workers and clear caches
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(regs) {
             regs.forEach(function(reg) { reg.update(); });
@@ -279,9 +280,19 @@
         navigator.serviceWorker.addEventListener('controllerchange', function() {
             if (!window.__swReloading) { window.__swReloading = true; location.reload(); }
         });
+        // Nuclear: if old SW is serving stale content, unregister it
+        if (!document.querySelector('link[href*="styles/main.css"]')) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                regs.forEach(function(reg) { reg.unregister(); });
+                caches.keys().then(function(names) {
+                    names.forEach(function(n) { caches.delete(n); });
+                });
+                location.reload();
+            });
+        }
     }
     </script>
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js" onerror="document.body.innerHTML='<div style=\'text-align:center;padding:3rem;color:#f97316;font-family:sans-serif\'><h2>Mise a jour en cours</h2><p style=\'color:#888;margin:1rem 0\'>Vide le cache de ton navigateur ou supprime et reinstalle l\'app.</p><button onclick=\'caches.keys().then(function(n){n.forEach(function(k){caches.delete(k)})});navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(g){g.unregister()})});location.reload()\' style=\'background:#f97316;color:#000;border:none;padding:1rem 2rem;border-radius:12px;font-weight:700;font-size:1rem;cursor:pointer\'>Forcer la mise a jour</button></div>'"></script>
 
 
 </body>
