@@ -1796,3 +1796,30 @@ header p {
     .log-container { max-height: 320px; font-size: 0.82rem; }
     .monitor-stat .val { font-size: 1.5rem; }
 }
+
+/* ── Ticket links (visible on event cards) ── */
+.ticket-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+}
+
+.ticket-link {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--bg-tertiary, #08080d);
+    border: 1px solid var(--border-secondary, #1a1a2a);
+    border-radius: 10px;
+    padding: 0.55rem 0.8rem;
+    color: var(--accent-orange, #f97316);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: border-color 0.15s;
+}
+
+.ticket-link:active {
+    border-color: var(--accent-orange, #f97316);
+}

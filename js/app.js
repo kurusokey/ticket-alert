@@ -681,15 +681,17 @@ function renderEvents() {
         const urls = getEventUrls(ev);
         let urlsHtml = '';
         for (const u of urls) {
-            let host = '';
-            try { host = new URL(u.url).hostname.replace('www.',''); } catch {}
-            if (host) {
-                const lbl = u.label ? esc(u.label) : esc(host);
-                const healthDot = urlHealthCache?.[ev.id]?.[u.url] !== undefined
-                    ? `<span class="health-dot ${urlHealthCache[ev.id][u.url] ? 'ok' : 'err'}"></span>`
-                    : '';
-                urlsHtml += `<span>${healthDot}<a href="${esc(u.url)}" target="_blank">${lbl}</a></span>`;
+            const url = typeof u === 'string' ? u : (u.url || '');
+            const label = typeof u === 'string' ? '' : (u.label || '');
+            if (!url) continue;
+            let lbl = label;
+            if (!lbl) {
+                try { lbl = new URL(url).hostname.replace('www.',''); } catch { lbl = 'Lien'; }
             }
+            const healthDot = urlHealthCache?.[ev.id]?.[url] !== undefined
+                ? `<span class="health-dot ${urlHealthCache[ev.id][url] ? 'ok' : 'err'}"></span>`
+                : '';
+            urlsHtml += `<a href="${esc(url)}" target="_blank" class="ticket-link">${healthDot}🎫 ${esc(lbl)}</a>`;
         }
 
         return `
@@ -703,8 +705,8 @@ function renderEvents() {
                     ${ev.venue ? `<span>${esc(ev.venue)}</span>` : ''}
                     ${ed ? `<span>${ed}</span>` : ''}
                     ${sd ? `<span>Vente: ${sd}</span>` : ''}
-                    ${urlsHtml}
                 </div>
+                ${urlsHtml ? `<div class="ticket-links">${urlsHtml}</div>` : ''}
                 <div class="event-actions-row">
                     <button onclick="toggleEvent('${esc(ev.id)}')">${ev.active ? 'Pause' : 'Activer'}</button>
                     <button onclick="editEvent('${esc(ev.id)}')">Modifier</button>
