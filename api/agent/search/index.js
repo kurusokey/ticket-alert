@@ -64,10 +64,21 @@ Puis recherche sur le web :
 - Le championnat / competition (Ligue 1, Ligue 2, Coupe de France, Champions League, etc.)
 
 **Si c'est un artiste / concert :**
-- Les dates de concerts en France
+- Les dates de concerts en FRANCE ET EN EUROPE (Royaume-Uni, Pays-Bas, Belgique, Allemagne, Espagne, Italie, Suisse, etc.)
 - Les salles / lieux
-- Les URLs EXACTES des pages de billetterie
+- La ville et le PAYS
+- Les URLs EXACTES des pages de billetterie LOCALES du pays (ex: ticketmaster.co.uk pour Londres, ticketmaster.nl pour Amsterdam, ticketmaster.de pour l'Allemagne, etc.)
 - Le statut de la vente
+
+Plateformes de billetterie par pays :
+- France : ticketmaster.fr, fnacspectacles.com
+- UK : ticketmaster.co.uk, seetickets.com, axs.com
+- Pays-Bas : ticketmaster.nl, eventim.nl
+- Belgique : ticketmaster.be, fnacspectacles.be
+- Allemagne : ticketmaster.de, eventim.de
+- Espagne : ticketmaster.es, entradas.com
+- Italie : ticketmaster.it, ticketone.it
+- Suisse : ticketmaster.ch, ticketcorner.ch
 
 Reponds UNIQUEMENT en JSON valide avec cette structure :
 {
@@ -76,9 +87,10 @@ Reponds UNIQUEMENT en JSON valide avec cette structure :
   "found": true ou false,
   "events": [
     {
-      "name": "Nom de l'evenement (ex: 'PSG vs Marseille' ou 'Celine Dion')",
+      "name": "Nom de l'evenement (ex: 'PSG vs Marseille' ou 'Celine Dion — London')",
       "venue": "Nom du stade ou de la salle",
       "city": "Ville",
+      "country": "Pays (ex: France, UK, Netherlands, etc.)",
       "competition": "Ligue 1" ou null (pour les sports),
       "dates": ["2026-04-12"],
       "ticket_urls": [
@@ -95,6 +107,8 @@ Reponds UNIQUEMENT en JSON valide avec cette structure :
 IMPORTANT :
 - Les URLs doivent etre de VRAIES URLs de pages de billetterie, pas des URLs inventees
 - Pour le sport, cherche les 3 a 5 prochains matchs A DOMICILE
+- Pour les concerts, cherche TOUTES les dates en Europe (pas seulement la France)
+- Regroupe par ville/salle (un objet par lieu)
 - Les dates au format YYYY-MM-DD
 - Ne retourne QUE le JSON, rien d'autre`;
 

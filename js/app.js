@@ -1223,7 +1223,7 @@ async function searchArtist() {
                 return `
                 <div class="search-result-card">
                     <div class="result-artist">${typeIcon} ${esc(eventName)}</div>
-                    <div class="result-venue">${esc(c.venue || '')}${c.city ? ' — ' + esc(c.city) : ''}</div>
+                    <div class="result-venue">${esc(c.venue || '')}${c.city ? ' — ' + esc(c.city) : ''}${c.country && c.country !== 'France' ? ' 🌍 ' + esc(c.country) : ''}</div>
                     ${competition}
                     ${dates ? `<div class="result-dates">${dates}</div>` : ''}
                     ${c.price_range ? `<div class="result-dates">${esc(c.price_range)}</div>` : ''}
