@@ -711,7 +711,6 @@ function renderEvents() {
                     <button onclick="toggleEvent('${esc(ev.id)}')">${ev.active ? 'Pause' : 'Activer'}</button>
                     <button onclick="editEvent('${esc(ev.id)}')">Modifier</button>
                     <button class="btn-share" onclick="shareEvent('${esc(ev.id)}')">Partager</button>
-                    <button class="btn-cal" onclick="exportCalendar('${esc(ev.id)}')">Calendrier</button>
                     <button class="btn-del" onclick="deleteEvent('${esc(ev.id)}')">Supprimer</button>
                 </div>
             </div>`;
