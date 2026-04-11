@@ -394,6 +394,7 @@ function renderMonitorUI() {
     const stats = document.getElementById('monitorStats');
 
     if (data.running) {
+        panel.classList.remove('compact');
         const hasAlert = data.alerts?.length > 0;
         panel.className = 'monitor-panel' + (hasAlert ? ' has-alert' : ' active');
         dot.className = 'status-dot' + (hasAlert ? ' alert' : ' running');
@@ -408,7 +409,7 @@ function renderMonitorUI() {
         document.getElementById('statStarted').textContent = data.started_at || '--:--';
         requestWakeLock();
     } else {
-        panel.className = 'monitor-panel';
+        panel.className = 'monitor-panel compact';
         dot.className = 'status-dot';
         title.innerHTML = '<strong>Surveillance inactive</strong>';
         btnStart.style.display = '';
@@ -670,47 +671,32 @@ function renderEvents() {
     const pageEvents = filtered.slice(start, start + EVENTS_PER_PAGE);
 
     let html = pageEvents.map(ev => {
-        const bc = ev.active ? 'badge-active' : 'badge-paused';
-        const bt = ev.active ? 'Actif' : 'Pause';
         const daysUntil = getDaysUntil(ev);
         const isPast = daysUntil === null;
         let cc = ev.active ? '' : 'inactive';
         if (isPast) cc += ' past';
-        const sd = ev.sale_date ? fmtDate(ev.sale_date) : '';
         const ed = fmtDates(ev);
         const urls = getEventUrls(ev);
-        let urlsHtml = '';
-        for (const u of urls) {
-            const url = typeof u === 'string' ? u : (u.url || '');
-            const label = typeof u === 'string' ? '' : (u.label || '');
-            if (!url) continue;
-            let lbl = label;
-            if (!lbl) {
-                try { lbl = new URL(url).hostname.replace('www.',''); } catch { lbl = 'Lien'; }
-            }
-            const healthDot = urlHealthCache?.[ev.id]?.[url] !== undefined
-                ? `<span class="health-dot ${urlHealthCache[ev.id][url] ? 'ok' : 'err'}"></span>`
-                : '';
-            urlsHtml += `<a href="${esc(url)}" target="_blank" class="ticket-link">${healthDot}🎫 ${esc(lbl)}</a>`;
-        }
+        const firstUrl = urls.length > 0 ? (typeof urls[0] === 'string' ? urls[0] : urls[0].url) : '';
 
         return `
             <div class="event-card ${cc}" data-event-id="${esc(ev.id)}">
                 <div class="event-top">
                     <span class="event-name">${esc(ev.name)}</span>
-                    <span class="badge ${bc}">${bt}</span>
                     ${fmtDaysUntil(daysUntil)}
                 </div>
                 <div class="event-info">
                     ${ev.venue ? `<span>${esc(ev.venue)}</span>` : ''}
                     ${ed ? `<span>${ed}</span>` : ''}
-                    ${sd ? `<span>Vente: ${sd}</span>` : ''}
                 </div>
-                ${urlsHtml ? `<div class="ticket-links">${urlsHtml}</div>` : ''}
                 <div class="event-actions-row">
-                    <button onclick="toggleEvent('${esc(ev.id)}')">${ev.active ? 'Pause' : 'Activer'}</button>
+                    <a href="${esc(firstUrl)}" target="_blank" class="btn-ticket" ${!firstUrl ? 'style="display:none"' : ''}>Acheter</a>
+                    <button class="btn-more" onclick="toggleEventMenu('${esc(ev.id)}')">···</button>
+                </div>
+                <div class="event-menu" id="menu-${esc(ev.id)}" style="display:none">
+                    <button onclick="toggleEvent('${esc(ev.id)}');toggleEventMenu('${esc(ev.id)}')">${ev.active ? 'Mettre en pause' : 'Activer'}</button>
                     <button onclick="editEvent('${esc(ev.id)}')">Modifier</button>
-                    <button class="btn-share" onclick="shareEvent('${esc(ev.id)}')">Partager</button>
+                    <button onclick="shareEvent('${esc(ev.id)}');toggleEventMenu('${esc(ev.id)}')">Partager</button>
                     <button class="btn-del" onclick="deleteEvent('${esc(ev.id)}')">Supprimer</button>
                 </div>
             </div>`;
@@ -1146,9 +1132,18 @@ async function cleanupEvents() {
 }
 
 function switchTab(tab) {
-    document.getElementById('tabSearch').classList.toggle('active', tab === 'search');
-    document.getElementById('tabEvents').classList.toggle('active', tab === 'events');
-    document.getElementById('tabCalendar').classList.toggle('active', tab === 'calendar');
+    // Update top tabs (if visible)
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    const topTab = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (topTab) topTab.classList.add('active');
+
+    // Update bottom nav
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navMap = { search: 'navSearch', events: 'navEvents', calendar: 'navCalendar' };
+    const navItem = document.getElementById(navMap[tab]);
+    if (navItem) navItem.classList.add('active');
+
+    // Show/hide tab content
     document.getElementById('tabContentSearch').style.display = tab === 'search' ? '' : 'none';
     document.getElementById('tabContentEvents').style.display = tab === 'events' ? '' : 'none';
     document.getElementById('tabContentCalendar').style.display = tab === 'calendar' ? '' : 'none';
@@ -1775,36 +1770,25 @@ window.addEventListener('offline', () => {
 });
 
 // ══════════════════════════════════════
-// FAB QUICK SCAN
+// EVENT MENU (... dropdown)
 // ══════════════════════════════════════
 
-async function quickScan() {
-    const fab = document.getElementById('fabScan');
-    if (fab) fab.classList.add('scanning');
-    try {
-        const res = await fetch(`${API}/api/monitor/scan`, { headers: authHeaders() });
-        const data = await res.json();
-        if (data.results) {
-            const alerts = data.results.filter(r => r.status === 'OPEN' || r.status === 'CHANGED');
-            if (alerts.length > 0) {
-                const state = getMonState();
-                const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-                for (const r of alerts) {
-                    if (!state.alerts) state.alerts = [];
-                    state.alerts.push({ time: now, event: r.event, url: r.url, detail: r.detail });
-                }
-                setMonState(state);
-                renderMonitorUI();
-                showToast(`${alerts.length} billetterie(s) detectee(s) !`);
-                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
-                playAlertSound();
-            } else {
-                showToast('Aucun changement');
-            }
-        }
-    } catch { showToast('Erreur scan', true); }
-    if (fab) fab.classList.remove('scanning');
+function toggleEventMenu(id) {
+    const menu = document.getElementById('menu-' + id);
+    if (!menu) return;
+    // Close all other menus first
+    document.querySelectorAll('.event-menu').forEach(m => {
+        if (m.id !== 'menu-' + id) m.style.display = 'none';
+    });
+    menu.style.display = menu.style.display === 'none' ? '' : 'none';
 }
+
+// Close menus when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.btn-more') && !e.target.closest('.event-menu')) {
+        document.querySelectorAll('.event-menu').forEach(m => m.style.display = 'none');
+    }
+});
 
 // ══════════════════════════════════════
 // INIT
@@ -1813,7 +1797,6 @@ async function quickScan() {
 function initApp() {
     initTheme();
     loadEvents();
-    loadUrlHealth();
     loadCronHealth();
     restoreSchedule();
     restorePushState();

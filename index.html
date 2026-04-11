@@ -37,55 +37,9 @@
         <div class="auth-user-info" id="userInfo"></div>
 
         <div class="desktop-layout">
-        <!-- ── Monitor ── -->
-        <div class="monitor-panel" id="monitorPanel">
-            <div class="monitor-status-row">
-                <div class="status-dot" id="monitorDot"></div>
-                <div class="monitor-status-text" id="monitorTitle"><strong>Surveillance inactive</strong></div>
-                <button class="push-badge" id="pushBadge" onclick="togglePush()">Push off</button>
-                <span class="telegram-badge">Telegram</span>
-                <span class="cron-indicator" id="cronIndicator"><span class="cron-dot"></span>Cron</span>
-            </div>
-
-            <button class="btn-cta start" id="btnStart" onclick="startMonitor()">Lancer la surveillance</button>
-            <button class="btn-cta stop" id="btnStop" onclick="stopMonitor()" style="display:none">Arreter la surveillance</button>
-
-            <!-- Scheduler -->
-            <div class="scheduler" id="scheduler">
-                <div class="sched-header">
-                    <span>⏰</span>
-                    <span>Demarrage automatique</span>
-                </div>
-                <div class="sched-controls">
-                    <input type="datetime-local" id="schedTime" class="sched-input">
-                    <button class="sched-btn" id="schedBtn" onclick="toggleSchedule()">OK</button>
-                </div>
-                <div class="sched-countdown" id="schedCountdown" style="display:none"></div>
-            </div>
-
-            <div class="monitor-stats" id="monitorStats" style="display:none">
-                <div class="monitor-stat">
-                    <div class="val" id="statChecks">0</div>
-                    <div class="lbl">Checks</div>
-                </div>
-                <div class="monitor-stat">
-                    <div class="val" id="statStarted">--:--</div>
-                    <div class="lbl">Demarre</div>
-                </div>
-                <div class="monitor-stat">
-                    <div class="val">10s</div>
-                    <div class="lbl">Intervalle</div>
-                </div>
-            </div>
-
-            <div id="ticketResults"></div>
-            <div class="log-toggle" id="logToggle" onclick="toggleLogs()" style="display:none">Logs techniques ▼</div>
-            <div class="log-container" id="logContainer" style="display:none"></div>
-        </div>
-
         <!-- ── Tabs ── -->
         <div class="tabs-container">
-            <div class="tabs">
+            <div class="tabs" id="topTabs">
                 <button class="tab active" id="tabSearch" onclick="switchTab('search')">Rechercher</button>
                 <button class="tab" id="tabEvents" onclick="switchTab('events')">Mes evenements</button>
                 <button class="tab" id="tabCalendar" onclick="switchTab('calendar')">Calendrier</button>
@@ -152,6 +106,52 @@
                     <div class="calendar-day-events" id="calendarDayEvents"></div>
                 </div>
             </div>
+        </div>
+
+        <!-- ── Monitor ── -->
+        <div class="monitor-panel" id="monitorPanel">
+            <div class="monitor-status-row">
+                <div class="status-dot" id="monitorDot"></div>
+                <div class="monitor-status-text" id="monitorTitle"><strong>Surveillance inactive</strong></div>
+                <button class="push-badge" id="pushBadge" onclick="togglePush()">Push off</button>
+                <span class="telegram-badge">Telegram</span>
+                <span class="cron-indicator" id="cronIndicator"><span class="cron-dot"></span>Cron</span>
+            </div>
+
+            <button class="btn-cta start" id="btnStart" onclick="startMonitor()">Lancer la surveillance</button>
+            <button class="btn-cta stop" id="btnStop" onclick="stopMonitor()" style="display:none">Arreter la surveillance</button>
+
+            <!-- Scheduler -->
+            <div class="scheduler" id="scheduler">
+                <div class="sched-header">
+                    <span>⏰</span>
+                    <span>Demarrage automatique</span>
+                </div>
+                <div class="sched-controls">
+                    <input type="datetime-local" id="schedTime" class="sched-input">
+                    <button class="sched-btn" id="schedBtn" onclick="toggleSchedule()">OK</button>
+                </div>
+                <div class="sched-countdown" id="schedCountdown" style="display:none"></div>
+            </div>
+
+            <div class="monitor-stats" id="monitorStats" style="display:none">
+                <div class="monitor-stat">
+                    <div class="val" id="statChecks">0</div>
+                    <div class="lbl">Checks</div>
+                </div>
+                <div class="monitor-stat">
+                    <div class="val" id="statStarted">--:--</div>
+                    <div class="lbl">Demarre</div>
+                </div>
+                <div class="monitor-stat">
+                    <div class="val">10s</div>
+                    <div class="lbl">Intervalle</div>
+                </div>
+            </div>
+
+            <div id="ticketResults"></div>
+            <div class="log-toggle" id="logToggle" onclick="toggleLogs()" style="display:none">Logs techniques ▼</div>
+            <div class="log-container" id="logContainer" style="display:none"></div>
         </div>
 
         </div><!-- /desktop-layout -->
@@ -267,7 +267,20 @@
 
     <div id="offlineBanner" class="offline-banner" hidden>Mode hors-ligne — les modifications seront synchronisees</div>
 
-    <button class="fab-scan" id="fabScan" onclick="quickScan()" aria-label="Scan rapide"><span class="fab-icon">⚡</span></button>
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" id="navSearch" onclick="switchTab('search')">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-label">Rechercher</span>
+        </button>
+        <button class="nav-item" id="navEvents" onclick="switchTab('events')">
+            <span class="nav-icon">🎫</span>
+            <span class="nav-label">Events</span>
+        </button>
+        <button class="nav-item" id="navCalendar" onclick="switchTab('calendar')">
+            <span class="nav-icon">📅</span>
+            <span class="nav-label">Calendrier</span>
+        </button>
+    </nav>
 
     <div class="toast" id="toast"></div>
 
