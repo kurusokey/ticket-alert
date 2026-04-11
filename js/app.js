@@ -1415,6 +1415,23 @@ function selectCalendarDate(dateStr) {
 // SHARE & EXPORT CALENDAR
 // ══════════════════════════════════════
 
+async function shareApp() {
+    const url = window.location.origin;
+    const text = 'goFindMyTickets — Ne rate plus jamais une ouverture de billetterie';
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: 'goFindMyTickets', text, url });
+        } catch {}
+    } else {
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast('Lien copie');
+        } catch {
+            showToast(url);
+        }
+    }
+}
+
 async function shareEvent(id) {
     const ev = events.find(e => e.id === id);
     if (!ev) return;

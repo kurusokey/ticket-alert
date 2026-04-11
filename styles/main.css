@@ -1868,3 +1868,21 @@ header p {
     .monitor-stat .val { font-size: 1.5rem; }
 }
 
+
+/* ── Share app button ── */
+.btn-share-app {
+    display: inline-block;
+    margin-top: 0.5rem;
+    background: none;
+    border: 1px solid var(--border-input, #2a2a3a);
+    color: var(--text-muted, #666);
+    border-radius: 20px;
+    padding: 0.35rem 1rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-share-app:active {
+    border-color: var(--accent-orange, #f97316);
+    color: var(--accent-orange, #f97316);
+}
