@@ -567,16 +567,13 @@ async function loadEvents() {
 
     const data = await apiCall('/api/events');
     if (data && Array.isArray(data)) {
+        // KV fait autorite — remplace le localStorage
         events = data;
-        const localEvents = lsGetEvents();
-        const apiIds = new Set(events.map(e => e.id));
-        for (const le of localEvents) {
-            if (!apiIds.has(le.id)) events.push(le);
-        }
+        lsSaveEvents(events);
     } else {
+        // API indisponible — fallback localStorage
         events = lsGetEvents();
     }
-    lsSaveEvents(events);
     renderEvents();
 }
 
