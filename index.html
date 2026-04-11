@@ -270,6 +270,17 @@
 
     <div class="toast" id="toast"></div>
 
+    <script>
+    // Force unregister old SW and reload if version mismatch
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+            regs.forEach(function(reg) { reg.update(); });
+        });
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            if (!window.__swReloading) { window.__swReloading = true; location.reload(); }
+        });
+    }
+    </script>
     <script src="/js/app.js"></script>
 
 
