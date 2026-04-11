@@ -1442,7 +1442,7 @@ async function shareEvent(id) {
         });
         const data = await resp.json();
         if (data.ok && data.token) {
-            shareUrl = `https://gofindmytickets.vercel.app/api/share?token=${data.token}`;
+            shareUrl = `${window.location.origin}/api/share?token=${data.token}`;
         } else {
             showToast(data.error || 'Erreur lors du partage');
             return;
@@ -1487,7 +1487,8 @@ async function shareEvent(id) {
 
 function exportCalendar(id) {
     const auth = getAuth();
-    const calUrl = `https://gofindmytickets.vercel.app/api/calendar?id=${encodeURIComponent(id)}&pin=${encodeURIComponent(auth?.pin || '')}`;
+    if (!auth?.pin) { showToast('Connecte-toi d\'abord', true); return; }
+    const calUrl = `${window.location.origin}/api/calendar?id=${encodeURIComponent(id)}&pin=${encodeURIComponent(auth.pin)}`;
     window.open(calUrl, '_blank');
 }
 
