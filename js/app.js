@@ -88,8 +88,11 @@ function finishAuth() {
     document.getElementById('mainApp').style.display = '';
     const auth = getAuth();
     if (auth) {
+        const initial = (auth.name || '?').charAt(0).toUpperCase();
         document.getElementById('userInfo').innerHTML =
-            `${esc(auth.name || '')} &mdash; <a class="settings-link" onclick="openSettings()">Parametres</a> &mdash; <a onclick="logout()">Deconnexion</a>`;
+            `<div class="user-avatar">${esc(initial)}</div>
+             <span class="user-name">Salut ${esc(auth.name || '')} !</span>
+             <a class="user-logout" onclick="logout()">Deconnexion</a>`;
     }
     // Nettoyer et dedupliquer le state monitor local
     const mon = getMonState();
@@ -657,7 +660,17 @@ function renderEvents() {
     const filtered = getFilteredEvents();
 
     if (filtered.length === 0) {
-        list.innerHTML = '<div class="empty-state">Aucun evenement surveille<br><br>Utilise l\'onglet "Rechercher" pour trouver des concerts</div>';
+        list.innerHTML = `<div class="empty-state">
+            <svg viewBox="0 0 64 64" fill="none" width="64" height="64" style="margin:0 auto 1rem;display:block;opacity:0.4">
+                <rect x="8" y="14" width="48" height="36" rx="6" stroke="#f97316" stroke-width="2"/>
+                <line x1="8" y1="26" x2="56" y2="26" stroke="#f97316" stroke-width="1.5" stroke-dasharray="3 3"/>
+                <circle cx="32" cy="38" r="8" stroke="#555" stroke-width="1.5"/>
+                <line x1="28" y1="34" x2="36" y2="42" stroke="#555" stroke-width="1.5"/>
+                <line x1="36" y1="34" x2="28" y2="42" stroke="#555" stroke-width="1.5"/>
+            </svg>
+            <strong>Aucun evenement</strong><br>
+            <span style="color:var(--text-dimmed);font-size:0.8rem">Utilise l'onglet <span style="color:#f97316">Rechercher</span> pour trouver des concerts ou events</span>
+        </div>`;
         return;
     }
 
@@ -675,20 +688,29 @@ function renderEvents() {
         const ed = fmtDates(ev);
         const urls = getEventUrls(ev);
         const firstUrl = urls.length > 0 ? (typeof urls[0] === 'string' ? urls[0] : urls[0].url) : '';
+        const typeIcon = (ev.type || '').toLowerCase() === 'sport'
+            ? '<svg class="event-type-icon sport" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M10 1a9 9 0 000 18M10 1a9 9 0 010 18M1 10h18" stroke="currentColor" stroke-width="1" fill="none"/></svg>'
+            : '<svg class="event-type-icon concert" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M12 3v10a3 3 0 11-2-2.83V5l6-1.5v8.5a3 3 0 11-2-2.83V3z" fill="currentColor" opacity="0.15"/><path d="M12 3v10a3 3 0 11-2-2.83V5l6-1.5v8.5a3 3 0 11-2-2.83V3z"/></svg>';
 
         return `
             <div class="event-card ${cc}" data-event-id="${esc(ev.id)}">
                 <div class="event-top">
+                    <span class="event-type-badge">${typeIcon}</span>
                     <span class="event-name">${esc(ev.name)}</span>
                     ${fmtDaysUntil(daysUntil)}
                 </div>
                 <div class="event-info">
-                    ${ev.venue ? `<span>${esc(ev.venue)}</span>` : ''}
+                    ${ev.venue ? `<span class="event-venue-text"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><path d="M8 1C5.24 1 3 3.24 3 6c0 4 5 9 5 9s5-5 5-9c0-2.76-2.24-5-5-5z"/><circle cx="8" cy="6" r="1.5"/></svg>${esc(ev.venue)}</span>` : ''}
                     ${ed ? `<span>${ed}</span>` : ''}
                 </div>
                 <div class="event-actions-row">
-                    <a href="${esc(firstUrl)}" target="_blank" class="btn-ticket" ${!firstUrl ? 'style="display:none"' : ''}>Acheter</a>
-                    <button class="btn-more" onclick="toggleEventMenu('${esc(ev.id)}')">···</button>
+                    <a href="${esc(firstUrl)}" target="_blank" class="btn-ticket" ${!firstUrl ? 'style="display:none"' : ''}>
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13" style="vertical-align:-1px;margin-right:3px"><path d="M14 8.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1h5.5"/><polyline points="10 2 14 2 14 6"/><line x1="7" y1="9" x2="14" y2="2"/></svg>
+                        Billets
+                    </a>
+                    <button class="btn-more" onclick="toggleEventMenu('${esc(ev.id)}')" title="Plus d'actions">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><circle cx="4" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="16" cy="10" r="2"/></svg>
+                    </button>
                 </div>
                 <div class="event-menu" id="menu-${esc(ev.id)}" style="display:none">
                     <button onclick="toggleEvent('${esc(ev.id)}');toggleEventMenu('${esc(ev.id)}')">${ev.active ? 'Mettre en pause' : 'Activer'}</button>
