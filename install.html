@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<title>Installer goFindMyTickets</title>
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+    line-height: 1.5;
+}
+.wrap { max-width: 480px; margin: 0 auto; padding: 1.5rem 0 3rem; }
+
+/* Hero */
+.hero { text-align: center; margin-bottom: 2rem; }
+.hero-logo { width: 80px; height: 80px; margin: 0 auto 1rem; display: block; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.hero h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.3rem; color: #fff; }
+.hero h1 span { color: #f97316; }
+.hero p { color: #888; font-size: 0.9rem; max-width: 340px; margin: 0 auto; }
+
+/* Device detection banner */
+.device-banner {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.device-banner.warn { border-color: #f9731644; background: #1a0f00; color: #f97316; }
+.device-banner.ok { border-color: #22c55e44; background: #0d1a0d; color: #22c55e; }
+.device-banner svg { flex-shrink: 0; }
+
+/* Steps */
+.steps-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #666;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    padding-left: 0.2rem;
+}
+.step {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.7rem;
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+}
+.step-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.step-body { flex: 1; min-width: 0; }
+.step-title { font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 0.2rem; }
+.step-desc { font-size: 0.82rem; color: #888; }
+.step-icon {
+    margin-top: 0.6rem;
+    padding: 0.55rem 0.8rem;
+    background: #08080d;
+    border: 1px solid #1a1a2a;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: #bbb;
+}
+.step-icon svg { flex-shrink: 0; }
+
+/* CTA */
+.open-app-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+}
+.open-app-btn:active { transform: scale(0.98); }
+
+.footer-note {
+    text-align: center;
+    margin-top: 1.2rem;
+    font-size: 0.72rem;
+    color: #555;
+}
+.footer-note a { color: #f97316; text-decoration: none; }
+
+/* Standalone redirect notice */
+.standalone-notice {
+    display: none;
+    text-align: center;
+    padding: 3rem 1rem;
+}
+.standalone-notice.show { display: block; }
+.standalone-notice h2 { color: #22c55e; font-size: 1.2rem; margin-bottom: 0.5rem; }
+.standalone-notice p { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+/* Hide non-iOS steps by default */
+.ios-only { display: none; }
+.android-only { display: none; }
+.desktop-only { display: none; }
+body.is-ios .ios-only { display: block; }
+body.is-android .android-only { display: block; }
+body.is-desktop .desktop-only { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+    <!-- If already installed, show welcome back -->
+    <div class="standalone-notice" id="standaloneNotice">
+        <h2>✓ App déjà installée</h2>
+        <p>Tu peux l'ouvrir depuis ton écran d'accueil.</p>
+        <a href="/" class="open-app-btn">Ouvrir l'app</a>
+    </div>
+
+    <div id="mainContent">
+        <div class="hero">
+            <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-logo">
+                <rect x="8" y="20" width="64" height="44" rx="8" stroke="#f97316" stroke-width="2.5" fill="#f9731610"/>
+                <line x1="8" y1="36" x2="72" y2="36" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <circle cx="56" cy="42" r="12" stroke="#22c55e" stroke-width="2" fill="#22c55e15"/>
+                <path d="M52 42l3 3 5-6" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="20" cy="28" r="4" fill="#f97316" opacity="0.3"/>
+                <circle cx="30" cy="28" r="4" fill="#f97316" opacity="0.5"/>
+            </svg>
+            <h1>Installe go<span>Find</span>My<span>Tickets</span></h1>
+            <p>Ajoute l'app sur l'écran d'accueil de ton iPhone en 4 étapes</p>
+        </div>
+
+        <!-- iOS Safari banner -->
+        <div class="device-banner ok ios-only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Parfait, tu es sur Safari iOS — suis les étapes ci-dessous.</span>
+        </div>
+
+        <!-- Non-Safari iOS warning -->
+        <div class="device-banner warn" id="notSafariWarn" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Ouvre cette page dans <strong>Safari</strong> (pas Chrome) pour pouvoir installer l'app.</span>
+        </div>
+
+        <!-- Android banner -->
+        <div class="device-banner ok android-only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Sur Android : ouvre le menu ⋮ de Chrome puis <strong>"Installer l'application"</strong>.</span>
+        </div>
+
+        <!-- Desktop banner -->
+        <div class="device-banner desktop-only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Ouvre cette page sur ton <strong>iPhone en Safari</strong> pour installer l'app.</span>
+        </div>
+
+        <!-- iOS steps -->
+        <div class="ios-only">
+            <div class="steps-title">Étapes d'installation</div>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                    <div class="step-title">Tape sur le bouton Partager</div>
+                    <div class="step-desc">Le carré avec une flèche vers le haut, en bas de Safari.</div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                        Bouton Partager
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                    <div class="step-title">Descends dans le menu</div>
+                    <div class="step-desc">Fais défiler la liste des actions jusqu'à trouver "Sur l'écran d'accueil".</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                    <div class="step-title">Tape "Sur l'écran d'accueil"</div>
+                    <div class="step-desc">L'icône ressemble à un carré avec un +.</div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        Sur l'écran d'accueil
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                    <div class="step-title">Tape "Ajouter"</div>
+                    <div class="step-desc">En haut à droite. L'icône goFindMyTickets apparaît sur ton écran d'accueil — tu peux ouvrir l'app comme une vraie application.</div>
+                </div>
+            </div>
+        </div>
+
+        <a href="/" class="open-app-btn">Ouvrir l'app maintenant</a>
+
+        <p class="footer-note">
+            Des soucis ? <a href="mailto:kurusokey@gmail.com">Contacte-moi</a>
+        </p>
+    </div>
+</div>
+
+<script>
+(function() {
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    var isAndroid = /Android/.test(ua);
+    var isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    // If already installed as PWA → show welcome back screen
+    if (isStandalone) {
+        document.getElementById('standaloneNotice').classList.add('show');
+        document.getElementById('mainContent').style.display = 'none';
+        return;
+    }
+
+    if (isIOS) {
+        document.body.classList.add('is-ios');
+        if (!isSafari) {
+            document.getElementById('notSafariWarn').style.display = 'flex';
+        }
+    } else if (isAndroid) {
+        document.body.classList.add('is-android');
+    } else {
+        document.body.classList.add('is-desktop');
+    }
+})();
+</script>
+</body>
+</html>

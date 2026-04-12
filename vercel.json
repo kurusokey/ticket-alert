@@ -7,6 +7,9 @@
       "maxDuration": 30
     }
   },
+  "rewrites": [
+    { "source": "/install", "destination": "/install.html" }
+  ],
   "headers": [
     {
       "source": "/sw.js",
