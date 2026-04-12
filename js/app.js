@@ -450,9 +450,14 @@ function renderMonitorUI() {
         const tStart = currentTicketPage * TICKETS_PER_PAGE;
         const pageTickets = uniqueTickets.slice(tStart, tStart + TICKETS_PER_PAGE);
 
-        let html = pageTickets.map(t => `
+        let html = pageTickets.map((t, i) => `
             <div class="ticket-result">
-                <div class="ticket-name">🎫 ${esc(t.event || 'Billetterie detectee')}</div>
+                <div class="ticket-result-header">
+                    <div class="ticket-name">${esc(t.event || 'Billetterie detectee')}</div>
+                    <button class="ticket-remove-btn" onclick="removeTicketResult(${tStart + i})" title="Supprimer">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg>
+                    </button>
+                </div>
                 <div class="ticket-detail">${esc(t.detail || '')}</div>
                 ${t.url ? `<a href="${esc(t.url)}" target="_blank">Acheter</a>` : ''}
             </div>
@@ -495,6 +500,38 @@ let currentTicketPage = 0;
 function goTicketPage(page) {
     currentTicketPage = page;
     renderMonitorUI();
+}
+
+function removeTicketResult(index) {
+    const state = getMonState();
+    // Build the same deduplicated list to find the original item
+    const seen = new Set();
+    const mapping = []; // maps display index → {source:'alerts'|'logs', idx}
+    for (let i = 0; i < (state.alerts || []).length; i++) {
+        const a = state.alerts[i];
+        const key = (a.event || '') + '|' + (a.url || '');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        mapping.push({ source: 'alerts', idx: i });
+    }
+    for (let i = 0; i < (state.logs || []).length; i++) {
+        const l = state.logs[i];
+        if (!l.ticketUrl) continue;
+        const key = '|' + l.ticketUrl;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        mapping.push({ source: 'logs', idx: i });
+    }
+    const item = mapping[index];
+    if (!item) return;
+    if (item.source === 'alerts') {
+        state.alerts.splice(item.idx, 1);
+    } else {
+        state.logs.splice(item.idx, 1);
+    }
+    setMonState(state);
+    renderMonitorUI();
+    showToast('Supprime');
 }
 
 function toggleLogs() {
