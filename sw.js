@@ -1,12 +1,10 @@
-// goFindMyTickets — Service Worker v2
-const CACHE_NAME = 'gfmt-v46';
+// goFindMyTickets — Service Worker v3
+const CACHE_NAME = 'gfmt-v47';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
-  '/styles/main.css',
-  '/js/app.js',
 ];
 
 // ── Install: pre-cache app shell ──
@@ -45,8 +43,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for HTML pages (always get latest)
-  if (event.request.mode === 'navigate' || url.pathname === '/') {
+  // Network-first for HTML, CSS, JS (always get latest)
+  if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
     event.respondWith(
       fetch(event.request).then((response) => {
         if (response.ok) {
@@ -59,7 +57,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets (icons, manifest)
+  // Cache-first for icons, manifest only
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
