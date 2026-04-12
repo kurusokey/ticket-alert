@@ -732,31 +732,17 @@ function renderEvents() {
         return `
             <div class="event-card ${cc}" data-event-id="${esc(ev.id)}">
                 <div class="event-top">
-                    <span class="event-type-badge">${typeIcon}</span>
                     <span class="event-name">${esc(ev.name)}</span>
                     ${fmtDaysUntil(daysUntil)}
                 </div>
                 <div class="event-info">
-                    ${ev.venue ? `<span class="event-venue-text"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><path d="M8 1C5.24 1 3 3.24 3 6c0 4 5 9 5 9s5-5 5-9c0-2.76-2.24-5-5-5z"/><circle cx="8" cy="6" r="1.5"/></svg>${esc(ev.venue)}</span>` : ''}
+                    ${ev.venue ? `<span>${esc(ev.venue)}</span>` : ''}
                     ${ed ? `<span>${ed}</span>` : ''}
                 </div>
                 <div class="event-actions-row">
-                    <a href="${esc(firstUrl)}" target="_blank" class="btn-ticket" ${!firstUrl ? 'style="display:none"' : ''}>
-                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13" style="vertical-align:-1px;margin-right:3px"><path d="M14 8.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1h5.5"/><polyline points="10 2 14 2 14 6"/><line x1="7" y1="9" x2="14" y2="2"/></svg>
-                        Billets
-                    </a>
-                    <button class="btn-delete-direct" onclick="deleteEvent('${esc(ev.id)}')" title="Supprimer">
-                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="3 6 5 6 17 6"/><path d="M7 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/><path d="M5 6v11a2 2 0 002 2h6a2 2 0 002-2V6"/><line x1="9" y1="10" x2="9" y2="15"/><line x1="11" y1="10" x2="11" y2="15"/></svg>
-                    </button>
-                    <button class="btn-more" onclick="toggleEventMenu('${esc(ev.id)}')" title="Plus d'actions">
-                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><circle cx="4" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="16" cy="10" r="2"/></svg>
-                    </button>
-                </div>
-                <div class="event-menu" id="menu-${esc(ev.id)}" style="display:none">
-                    <button onclick="toggleEvent('${esc(ev.id)}');toggleEventMenu('${esc(ev.id)}')">${ev.active ? 'Mettre en pause' : 'Activer'}</button>
-                    <button onclick="editEvent('${esc(ev.id)}')">Modifier</button>
-                    <button onclick="shareEvent('${esc(ev.id)}');toggleEventMenu('${esc(ev.id)}')">Partager</button>
-                    <button class="btn-del" onclick="deleteEvent('${esc(ev.id)}')">Supprimer</button>
+                    ${firstUrl ? `<a href="${esc(firstUrl)}" target="_blank" class="btn-ticket">Billets</a>` : ''}
+                    <button class="btn-edit-sm" onclick="editEvent('${esc(ev.id)}')">Modifier</button>
+                    <button class="btn-del-direct" onclick="deleteEvent('${esc(ev.id)}')">Supprimer</button>
                 </div>
             </div>`;
     }).join('');
