@@ -696,6 +696,19 @@ header h1 span { color: #f97316; }
 
 .btn-submit:active { transform: scale(0.98); box-shadow: 0 2px 6px #f9731620; }
 
+/* ── Scheduler toggle link ── */
+.sched-toggle-link {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+    font-size: 0.7rem;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 0.3rem 0;
+}
+.sched-toggle-link:active { color: var(--accent-orange); }
+
 /* ── Scheduler ── */
 .scheduler {
     margin-top: 0.5rem;

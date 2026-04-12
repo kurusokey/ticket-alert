@@ -33,7 +33,7 @@
             <p class="auth-subtitle">Ne rate plus jamais l'ouverture d'une billetterie</p>
             <div class="auth-fields">
                 <div class="auth-field">
-                    <label for="authName">Prenom</label>
+                    <label for="authName">Prénom</label>
                     <input type="text" class="auth-name" id="authName" placeholder="Ex: Thomas" autocomplete="off">
                 </div>
                 <div class="auth-field">
@@ -44,7 +44,7 @@
             <div class="auth-actions">
                 <button class="btn-cta start" onclick="doAuth()">C'est parti</button>
             </div>
-            <p class="auth-hint">Premiere visite ? Ton compte sera cree automatiquement</p>
+            <p class="auth-hint">Première visite ? Ton compte sera créé automatiquement</p>
         </div>
     </div>
 
@@ -53,8 +53,8 @@
             <div class="header-row">
                 <h1>go<span>Find</span>My<span>Tickets</span></h1>
                 <div class="header-actions">
-                    <button class="header-btn" onclick="openSettings()" title="Parametres">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <button class="header-btn" onclick="openSettings()" title="Paramètres">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001.08 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1.08z"/></svg>
                     </button>
                 </div>
             </div>
@@ -66,7 +66,7 @@
         <div class="tabs-container">
             <div class="tabs" id="topTabs">
                 <button class="tab active" id="tabSearch" onclick="switchTab('search')">Rechercher</button>
-                <button class="tab" id="tabEvents" onclick="switchTab('events')">Mes evenements</button>
+                <button class="tab" id="tabEvents" onclick="switchTab('events')">Mes événements</button>
                 <button class="tab" id="tabCalendar" onclick="switchTab('calendar')">Calendrier</button>
             </div>
 
@@ -90,19 +90,19 @@
                     <div id="searchResults"></div>
                     <div id="searchLoading" style="display:none" class="search-loading">
                         <div class="search-spinner"></div>
-                        <span>L'IA cherche les meilleurs resultats...</span>
+                        <span>L'IA cherche les meilleurs résultats...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab: Mes evenements -->
+            <!-- Tab: Mes événements -->
             <div class="tab-content" id="tabContentEvents" style="display:none">
                 <div class="pull-to-refresh" id="pullToRefresh">
                     <div class="ptr-spinner"></div>
                     <span>Actualisation...</span>
                 </div>
                 <div class="section-header">
-                    <span class="tab-desc"><span id="eventsCount">0</span> evenement(s) surveille(s)</span>
+                    <span class="tab-desc"><span id="eventsCount">0</span> événement(s) surveillé(s)</span>
                     <div style="display:flex;gap:0.4rem">
                         <button class="btn-cleanup" id="btnCleanup" onclick="cleanupEvents()">Nettoyer</button>
                         <button class="btn-add" onclick="openForm()">+ Ajouter</button>
@@ -112,7 +112,7 @@
                     <select id="filterSort" onchange="renderEvents()">
                         <option value="date">Date (proche)</option>
                         <option value="name">Nom (A-Z)</option>
-                        <option value="newest">Ajout recent</option>
+                        <option value="newest">Ajout récent</option>
                     </select>
                     <select id="filterType" onchange="renderEvents()">
                         <option value="all">Tous types</option>
@@ -150,9 +150,8 @@
                     <div class="monitor-status-text" id="monitorTitle"><strong>Surveillance inactive</strong></div>
                 </div>
                 <div class="monitor-badges">
-                    <button class="push-badge" id="pushBadge" onclick="togglePush()">Push off</button>
+                    <button class="push-badge" id="pushBadge" onclick="togglePush()">Notifs off</button>
                     <span class="telegram-badge">Telegram</span>
-                    <span class="cron-indicator" id="cronIndicator"><span class="cron-dot"></span>Cron</span>
                 </div>
             </div>
 
@@ -166,10 +165,14 @@
             </button>
 
             <!-- Scheduler -->
-            <div class="scheduler" id="scheduler">
+            <div class="sched-toggle-link" id="schedToggleLink" onclick="toggleSchedulerPanel()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Programmer un démarrage
+            </div>
+            <div class="scheduler" id="scheduler" style="display:none">
                 <div class="sched-header">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span>Demarrage programme</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>Démarrage programmé</span>
                 </div>
                 <div class="sched-controls">
                     <input type="datetime-local" id="schedTime" class="sched-input">
@@ -205,7 +208,7 @@
 
         <!-- ── Check History ── -->
         <div class="history-header" onclick="toggleHistory()">
-            <span class="section-title">Historique des checks</span>
+            <span class="section-title">Historique</span>
             <span class="history-toggle" id="historyToggle">▼</span>
         </div>
         <div class="history-container" id="historyContainer" style="display:none"></div>
@@ -215,7 +218,7 @@
     <div class="form-overlay" id="formOverlay">
         <div class="form-inner">
             <div class="form-header">
-                <h2 id="formTitle">Ajouter un evenement</h2>
+                <h2 id="formTitle">Ajouter un événement</h2>
                 <button class="btn-close" onclick="closeForm()">&times;</button>
             </div>
             <div class="form-stack">
@@ -233,7 +236,7 @@
                     <button type="button" class="btn-add-url" onclick="addDateField()">+ Ajouter une date</button>
                 </div>
                 <div class="form-group">
-                    <label>Ouverture vente</label>
+                    <label>Ouverture de la vente</label>
                     <input type="datetime-local" id="eventSaleDate">
                 </div>
                 <div class="form-group" id="urlsGroup">
@@ -242,9 +245,9 @@
                     <button type="button" class="btn-add-url" onclick="addUrlField()">+ Ajouter une URL</button>
                 </div>
                 <div class="form-group">
-                    <label>Texte de fermeture</label>
+                    <label>Texte de clôture</label>
                     <input type="text" id="eventMarker" placeholder="Ex: ouverture imminente">
-                    <span class="hint">Texte visible sur la page quand la vente n'est pas ouverte</span>
+                    <span class="hint">Texte visible sur la page quand la vente n'est pas encore ouverte</span>
                 </div>
                 <button class="btn-submit" id="btnSave" onclick="saveEvent()">Ajouter</button>
             </div>
@@ -255,7 +258,7 @@
     <div class="settings-overlay" id="settingsOverlay">
         <div class="settings-box">
             <div class="settings-header">
-                <h3>Parametres</h3>
+                <h3>Paramètres</h3>
                 <button class="btn-close" onclick="closeSettings()">&times;</button>
             </div>
             <div class="settings-row">
@@ -270,7 +273,7 @@
             </div>
             <div class="settings-row">
                 <div>
-                    <div class="settings-label">Heures silencieuses</div>
+                    <div class="settings-label">Heures calmes</div>
                     <div class="settings-sublabel">Pas de notifications pendant ces heures</div>
                 </div>
                 <label class="toggle-switch">
@@ -292,21 +295,21 @@
     <div class="onboarding-overlay" id="onboarding" style="display:none">
         <div class="onboarding-card">
             <div class="onboarding-step" id="onboardStep1">
-                <div class="onboarding-icon">🔍</div>
+                <div class="onboarding-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><circle cx="20" cy="20" r="14"/><line x1="42" y1="42" x2="30" y2="30"/></svg></div>
                 <h3>1. Recherche</h3>
-                <p>Tape le nom d'un artiste ou d'une equipe</p>
+                <p>Tape le nom d'un artiste ou d'une équipe</p>
                 <button class="btn-cta start" onclick="nextOnboardStep(2)">Suivant</button>
             </div>
             <div class="onboarding-step" id="onboardStep2" style="display:none">
-                <div class="onboarding-icon">➕</div>
+                <div class="onboarding-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><circle cx="24" cy="24" r="18"/><line x1="24" y1="16" x2="24" y2="32"/><line x1="16" y1="24" x2="32" y2="24"/></svg></div>
                 <h3>2. Ajoute</h3>
-                <p>Clique "Surveiller" pour ajouter l'evenement</p>
+                <p>Clique "Surveiller" pour ajouter l'événement</p>
                 <button class="btn-cta start" onclick="nextOnboardStep(3)">Suivant</button>
             </div>
             <div class="onboarding-step" id="onboardStep3" style="display:none">
-                <div class="onboarding-icon">🔔</div>
+                <div class="onboarding-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M36 18a12 12 0 01-24 0"/><path d="M24 30v6"/><path d="M20 36h8"/><path d="M24 6v2"/><path d="M24 2a16 16 0 0116 16" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="3 3"/></svg></div>
                 <h3>3. Alerte</h3>
-                <p>Tu recois une alerte Telegram des que la billetterie ouvre</p>
+                <p>Tu reçois une alerte dès que la billetterie ouvre</p>
                 <button class="btn-cta start" onclick="closeOnboarding()">C'est parti !</button>
             </div>
         </div>

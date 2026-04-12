@@ -57,7 +57,7 @@ function authHeaders() {
 async function doAuth() {
     const name = document.getElementById('authName').value.trim();
     const pin = document.getElementById('authPin').value.trim();
-    if (!name) { showToast('Entre ton prenom', true); return; }
+    if (!name) { showToast('Entre ton prénom', true); return; }
     if (!/^\d{6}$/.test(pin)) { showToast('Le code PIN doit faire 6 chiffres', true); return; }
     try {
         const res = await fetch(`${API}/api/auth`, {
@@ -68,7 +68,7 @@ async function doAuth() {
         const data = await res.json();
         if (data.ok) {
             setAuth({ pin: data.pin, name: data.name });
-            if (data.isNew) showToast('Compte cree');
+            if (data.isNew) showToast('Compte créé');
             finishAuth();
             if (data.isNew) showOnboarding();
         } else {
@@ -92,7 +92,7 @@ function finishAuth() {
         document.getElementById('userInfo').innerHTML =
             `<div class="user-avatar">${esc(initial)}</div>
              <span class="user-name">Salut ${esc(auth.name || '')} !</span>
-             <a class="user-logout" onclick="logout()">Deconnexion</a>`;
+             <a class="user-logout" onclick="logout()">Déconnexion</a>`;
     }
     // Nettoyer et dedupliquer le state monitor local
     const mon = getMonState();
@@ -177,18 +177,18 @@ async function togglePush() {
     if (existing) {
         await existing.unsubscribe();
         await fetch('/api/push/unsubscribe', { method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: existing.endpoint }) }).catch(() => {});
-        document.getElementById('pushBadge').textContent = 'Push off';
+        document.getElementById('pushBadge').textContent = 'Notifs off';
         document.getElementById('pushBadge').classList.remove('on');
-        showToast('Push desactive');
+        showToast('Notifications désactivées');
     } else {
         try {
             const vapidRes = await fetch('/api/push/vapid', { headers: authHeaders() });
             const { publicKey } = await vapidRes.json();
             const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
             await fetch('/api/push/subscribe', { method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
-            document.getElementById('pushBadge').textContent = 'Push on';
+            document.getElementById('pushBadge').textContent = 'Notifs on';
             document.getElementById('pushBadge').classList.add('on');
-            showToast('Push active');
+            showToast('Notifications activées');
         } catch (e) {
             showToast('Erreur push: ' + e.message, true);
         }
@@ -202,7 +202,7 @@ async function restorePushState() {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
-            document.getElementById('pushBadge').textContent = 'Push on';
+            document.getElementById('pushBadge').textContent = 'Notifs on';
             document.getElementById('pushBadge').classList.add('on');
         }
     } catch {}
@@ -403,11 +403,12 @@ function renderMonitorUI() {
         dot.className = 'status-dot' + (hasAlert ? ' alert' : ' running');
         title.innerHTML = hasAlert
             ? '<strong style="color:#f97316">BILLETTERIE OUVERTE !</strong>'
-            : '<strong>Surveillance active</strong> &mdash; check toutes les 10s';
+            : '<strong>Surveillance active</strong> &mdash; vérification toutes les 10s';
         btnStart.style.display = 'none';
         btnStop.style.display = '';
         stats.style.display = '';
         document.getElementById('scheduler').style.display = 'none';
+        document.getElementById('schedToggleLink').style.display = 'none';
         document.getElementById('statChecks').textContent = data.check_count || 0;
         document.getElementById('statStarted').textContent = data.started_at || '--:--';
         requestWakeLock();
@@ -418,7 +419,8 @@ function renderMonitorUI() {
         btnStart.style.display = '';
         btnStop.style.display = 'none';
         stats.style.display = 'none';
-        document.getElementById('scheduler').style.display = '';
+        document.getElementById('schedToggleLink').style.display = '';
+        document.getElementById('scheduler').style.display = 'none';
         if (wakeLock) { wakeLock.release(); wakeLock = null; }
     }
 
@@ -531,7 +533,19 @@ function removeTicketResult(index) {
     }
     setMonState(state);
     renderMonitorUI();
-    showToast('Supprime');
+    showToast('Supprimé');
+}
+
+function toggleSchedulerPanel() {
+    const sched = document.getElementById('scheduler');
+    const link = document.getElementById('schedToggleLink');
+    if (sched.style.display === 'none') {
+        sched.style.display = '';
+        link.style.display = 'none';
+    } else {
+        sched.style.display = 'none';
+        link.style.display = '';
+    }
 }
 
 function toggleLogs() {
@@ -692,7 +706,7 @@ function renderEvents() {
     if (counter) counter.textContent = events.length;
     // Update tab badge
     const tabBtn = document.getElementById('tabEvents');
-    if (tabBtn) tabBtn.textContent = `Mes evenements (${events.length})`;
+    if (tabBtn) tabBtn.textContent = `Mes événements (${events.length})`;
 
     const filtered = getFilteredEvents();
 
@@ -705,7 +719,7 @@ function renderEvents() {
                 <line x1="28" y1="34" x2="36" y2="42" stroke="#555" stroke-width="1.5"/>
                 <line x1="36" y1="34" x2="28" y2="42" stroke="#555" stroke-width="1.5"/>
             </svg>
-            <strong>Aucun evenement</strong><br>
+            <strong>Aucun événement</strong><br>
             <span style="color:var(--text-dimmed);font-size:0.8rem">Utilise l'onglet <span style="color:#f97316">Rechercher</span> pour trouver des concerts ou events</span>
         </div>`;
         return;
@@ -855,7 +869,7 @@ function getFormDates() {
 function openForm() {
     editingId = null;
     clearFormFields();
-    document.getElementById('formTitle').textContent = 'Ajouter un evenement';
+    document.getElementById('formTitle').textContent = 'Ajouter un événement';
     document.getElementById('btnSave').textContent = 'Ajouter';
     document.getElementById('formOverlay').classList.add('open');
 }
@@ -924,7 +938,7 @@ async function saveEvent() {
         body: JSON.stringify(ev),
     });
 
-    showToast(editingId ? 'Modifie' : 'Ajoute');
+    showToast(editingId ? 'Modifié' : 'Ajouté');
     closeForm();
     loadEvents();
 }
@@ -964,7 +978,7 @@ async function deleteEvent(id) {
     setMonState(state);
     renderMonitorUI();
 
-    showToast('Supprime');
+    showToast('Supprimé');
     loadEvents();
 }
 
@@ -1321,12 +1335,12 @@ function addFromSearch(index) {
         body: JSON.stringify(ev),
     });
 
-    showToast('Evenement ajoute — voir "Mes evenements"');
+    showToast('Événement ajouté — voir "Mes événements"');
     loadEvents();
 
     // Mark button as added
     const btn = document.querySelectorAll('.btn-add-result')[index];
-    if (btn) { btn.textContent = 'Ajoute !'; btn.disabled = true; btn.style.opacity = '0.5'; }
+    if (btn) { btn.textContent = 'Ajouté !'; btn.disabled = true; btn.style.opacity = '0.5'; }
 
     // Flash the events tab to signal
     const tabBtn = document.getElementById('tabEvents');
