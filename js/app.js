@@ -708,6 +708,9 @@ function renderEvents() {
                         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13" style="vertical-align:-1px;margin-right:3px"><path d="M14 8.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1h5.5"/><polyline points="10 2 14 2 14 6"/><line x1="7" y1="9" x2="14" y2="2"/></svg>
                         Billets
                     </a>
+                    <button class="btn-delete-direct" onclick="deleteEvent('${esc(ev.id)}')" title="Supprimer">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="3 6 5 6 17 6"/><path d="M7 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/><path d="M5 6v11a2 2 0 002 2h6a2 2 0 002-2V6"/><line x1="9" y1="10" x2="9" y2="15"/><line x1="11" y1="10" x2="11" y2="15"/></svg>
+                    </button>
                     <button class="btn-more" onclick="toggleEventMenu('${esc(ev.id)}')" title="Plus d'actions">
                         <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><circle cx="4" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="16" cy="10" r="2"/></svg>
                     </button>

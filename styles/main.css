@@ -826,6 +826,21 @@ header h1 span { color: #f97316; }
 }
 .btn-ticket:active { transform: scale(0.97); box-shadow: none; }
 
+/* ── Event card: Delete button ── */
+.btn-delete-direct {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary, #1e1e2e);
+    color: var(--text-dimmed, #555);
+    border-radius: 10px;
+    padding: 0.6rem 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.btn-delete-direct:active { border-color: var(--accent-red, #ef4444); color: var(--accent-red, #ef4444); }
+
 /* ── Event card: More button ── */
 .btn-more {
     background: var(--bg-primary);
