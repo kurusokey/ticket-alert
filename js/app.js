@@ -5,7 +5,7 @@
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) metaTheme.content = theme === 'light' ? '#f5f5f7' : '#0a0a0f';
+    if (metaTheme) metaTheme.content = theme === 'light' ? '#faf7ff' : '#09090b';
     localStorage.setItem('gfmt_theme', theme);
 }
 
