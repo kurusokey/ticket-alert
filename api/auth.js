@@ -104,6 +104,10 @@ module.exports = async function handler(req, res) {
     return jsonResponse(res, { ok: true, pin, name, isNew: true });
   } catch (err) {
     console.error(err);
+    const msg = String(err.message || err);
+    if (msg.includes("max requests limit exceeded") || msg.includes("limit exceeded")) {
+      return jsonResponse(res, { ok: false, error: "Service temporairement indisponible (limite atteinte). Reessaye plus tard." }, 503);
+    }
     return jsonResponse(res, { ok: false, error: "Erreur interne" }, 500);
   }
 };

@@ -422,6 +422,10 @@ module.exports = async function handler(req, res) {
     });
   } catch (err) {
     console.error("Cron error:", err);
+    const msg = String(err.message || err);
+    if (msg.includes("max requests limit exceeded") || msg.includes("limit exceeded")) {
+      return jsonResponse(res, { error: "KV limit reached — cron paused", kvLimitReached: true }, 503);
+    }
     return jsonResponse(res, { error: "Erreur interne cron" }, 500);
   }
 };

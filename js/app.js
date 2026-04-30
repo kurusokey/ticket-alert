@@ -86,6 +86,8 @@ async function doAuth() {
             showToast('Code PIN incorrect', true);
         } else if (res.status === 429) {
             showToast('Trop de tentatives — patiente 1 minute', true);
+        } else if (res.status === 503) {
+            showToast('Service temporairement indisponible — reessaye dans quelques heures', true);
         } else {
             showToast(data.error || 'Erreur serveur', true);
         }
