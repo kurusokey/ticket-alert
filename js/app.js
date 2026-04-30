@@ -57,29 +57,49 @@ function authHeaders() {
 async function doAuth() {
     const name = document.getElementById('authName').value.trim();
     const pin = document.getElementById('authPin').value.trim();
-    if (!name) { showToast('Entre ton prénom', true); return; }
+    if (!name) { showToast('Entre ton prenom', true); return; }
     if (!/^\d{6}$/.test(pin)) { showToast('Le code PIN doit faire 6 chiffres', true); return; }
+
+    // Show loading state on button
+    const btn = document.querySelector('.auth-actions .btn-cta');
+    const originalText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Connexion...'; btn.disabled = true; }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
     try {
         const res = await fetch(`${API}/api/auth`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, pin }),
+            signal: controller.signal,
         });
+        clearTimeout(timeout);
         const data = await res.json();
         if (data.ok) {
             setAuth({ pin: data.pin, name: data.name });
-            if (data.isNew) showToast('Compte créé');
+            if (data.isNew) showToast('Compte cree');
             finishAuth();
             if (data.isNew) showOnboarding();
+        } else if (res.status === 401) {
+            showToast('Code PIN incorrect', true);
+        } else if (res.status === 429) {
+            showToast('Trop de tentatives — patiente 1 minute', true);
         } else {
-            showToast(data.error || 'Erreur', true);
+            showToast(data.error || 'Erreur serveur', true);
         }
     } catch (e) {
-        if (e.name === 'TypeError') {
+        clearTimeout(timeout);
+        if (e.name === 'AbortError') {
+            showToast('Le serveur ne repond pas — verifie ta connexion', true);
+        } else if (e.name === 'TypeError') {
             showToast('Pas de connexion internet', true);
         } else {
             showToast('Erreur de connexion', true);
         }
+    } finally {
+        if (btn) { btn.textContent = originalText; btn.disabled = false; }
     }
 }
 
@@ -582,20 +602,47 @@ async function apiCall(path, opts = {}) {
         showToast('Action enregistree (hors-ligne)');
         return null;
     }
+    // Timeout: abort after 15s
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
         opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
+        opts.signal = controller.signal;
         const res = await fetch(`${API}${path}`, opts);
+        clearTimeout(timeout);
         if (res.ok) return await res.json();
+        // Handle HTTP errors
+        if (res.status === 401) {
+            showToast('Session expiree — reconnecte-toi', true);
+            logout();
+            return null;
+        }
+        if (res.status === 429) {
+            showToast('Trop de requetes — patiente un instant', true);
+            return null;
+        }
+        if (res.status >= 500) {
+            showToast('Serveur indisponible — reessaie plus tard', true);
+            return null;
+        }
         try {
             const err = await res.json();
             if (err.error) showToast(err.error, true);
-        } catch {}
+            else showToast('Erreur ' + res.status, true);
+        } catch {
+            showToast('Erreur ' + res.status, true);
+        }
     } catch (e) {
-        if (e.name === 'TypeError' && opts.method && opts.method !== 'GET') {
+        clearTimeout(timeout);
+        if (e.name === 'AbortError') {
+            showToast('Connexion trop lente — verifie ton reseau', true);
+        } else if (e.name === 'TypeError' && opts.method && opts.method !== 'GET') {
             enqueueAction({ type: opts.method, path: path, body: opts.body ? JSON.parse(opts.body) : null });
             showToast('Action enregistree (hors-ligne)');
         } else if (e.name === 'TypeError') {
-            // GET request failed offline — silently fail, use localStorage
+            showToast('Pas de connexion', true);
+        } else {
+            showToast('Erreur inattendue', true);
         }
     }
     return null;
@@ -1066,9 +1113,10 @@ function fmtDate(s) {
 
 function showToast(msg, error = false) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
+    t.textContent = (error ? '\u26a0 ' : '\u2713 ') + msg;
     t.className = 'toast show' + (error ? ' error' : '');
-    setTimeout(() => t.className = 'toast', 2000);
+    // Errors stay longer so user can read
+    setTimeout(() => t.className = 'toast', error ? 4000 : 2500);
 }
 
 // ══════════════════════════════════════
@@ -1837,12 +1885,14 @@ async function flushOfflineQueue() {
 
 window.addEventListener('online', () => {
     document.getElementById('offlineBanner').hidden = true;
+    showToast('Connexion retablie');
     flushOfflineQueue();
     loadEvents();
 });
 
 window.addEventListener('offline', () => {
     document.getElementById('offlineBanner').hidden = false;
+    showToast('Connexion perdue — mode hors-ligne', true);
 });
 
 // ══════════════════════════════════════
