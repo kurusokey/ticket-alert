@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0F0F1E">
+    <meta name="theme-color" content="#0B0B18">
     <title>goFindMyTickets</title>
     <link rel="icon" type="image/png" href="/icons/icon-192.png">
     <link rel="manifest" href="/manifest.json">
@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles/main.css">
-    <style>body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-primary,#0F0F1E);color:var(--text-primary,#FFE7DA);margin:0}[hidden]{display:none!important}.auth-screen{position:fixed;inset:0;z-index:200;background:var(--bg-primary,#0F0F1E);display:flex;align-items:center;justify-content:center}.auth-screen.hidden{display:none}</style>
+    <style>body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg-primary,#0B0B18);color:var(--text-primary,#F0E6DC);margin:0}[hidden]{display:none!important}.auth-screen{position:fixed;inset:0;z-index:200;background:var(--bg-primary,#0B0B18);display:flex;align-items:center;justify-content:center}.auth-screen.hidden{display:none}.auth-screen .auth-box{opacity:0;transform:translateY(24px);animation:authEnter 0.7s cubic-bezier(0.22,1,0.36,1) 0.15s forwards}@keyframes authEnter{to{opacity:1;transform:translateY(0)}}</style>
 </head>
 <body>
     <!-- ── Auth screen ── -->
@@ -34,6 +34,11 @@
             </div>
             <h1>go<span>Find</span>My<span>Tickets</span></h1>
             <p class="auth-subtitle">Ne rate plus jamais l'ouverture d'une billetterie</p>
+            <div class="auth-features">
+                <div class="auth-feature"><span class="auth-feature-icon">&#x1F50D;</span> Recherche IA d'événements</div>
+                <div class="auth-feature"><span class="auth-feature-icon">&#x1F514;</span> Alertes en temps réel</div>
+                <div class="auth-feature"><span class="auth-feature-icon">&#x1F4F1;</span> Notifications push & Telegram</div>
+            </div>
             <div class="auth-fields">
                 <div class="auth-field">
                     <label for="authName">Prénom</label>
@@ -93,6 +98,12 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" class="search-btn-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             <span class="search-btn-text">Rechercher</span>
                         </button>
+                    </div>
+                    <div class="search-suggestions">
+                        <span class="search-tag">Beyonce</span>
+                        <span class="search-tag">PSG</span>
+                        <span class="search-tag">Coldplay</span>
+                        <span class="search-tag">Roland Garros</span>
                     </div>
                     <div id="searchResults"></div>
                     <div id="searchLoading" style="display:none" class="search-loading">
