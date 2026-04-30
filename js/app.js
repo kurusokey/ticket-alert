@@ -36,21 +36,98 @@ let editingId = null;
 let pollInterval = null;
 
 // ══════════════════════════════════════
-// AUTH (default user — no login required)
+// AUTH (inspired by Liberty Life)
 // ══════════════════════════════════════
 
-const DEFAULT_PIN = '230223';
+const AUTH_KEY = 'gfmt_auth';
 
 function getAuth() {
-    return { pin: DEFAULT_PIN, name: 'User' };
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || null; }
+    catch { return null; }
+}
+
+function setAuth(data) {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(data));
 }
 
 function authHeaders() {
-    return { 'Authorization': `Bearer ${DEFAULT_PIN}` };
+    const auth = getAuth();
+    return auth?.pin ? { 'Authorization': `Bearer ${auth.pin}` } : {};
 }
 
-function checkAuth() {
-    // Nettoyer et dedupliquer le state monitor local
+function showLoginError(msg) {
+    const el = document.getElementById('loginAlert');
+    const msgEl = document.getElementById('loginAlertMsg');
+    if (el && msgEl) {
+        msgEl.textContent = msg;
+        el.classList.remove('hidden');
+    }
+}
+
+function hideLoginError() {
+    const el = document.getElementById('loginAlert');
+    if (el) el.classList.add('hidden');
+}
+
+async function doLogin() {
+    const name = document.getElementById('loginName').value.trim();
+    const pin = document.getElementById('loginPin').value.trim();
+    hideLoginError();
+
+    if (!name) { showLoginError('Entre ton prenom'); return; }
+    if (!/^\d{6}$/.test(pin)) { showLoginError('Le code PIN doit faire 6 chiffres'); return; }
+
+    const btn = document.getElementById('loginBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Connexion...';
+    btn.disabled = true;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    try {
+        const res = await fetch(`${API}/api/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, pin }),
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await res.json();
+        if (data.ok) {
+            setAuth({ pin: data.pin, name: data.name });
+            finishLogin();
+        } else if (res.status === 429) {
+            showLoginError('Trop de tentatives. Reessaie dans 1 minute.');
+        } else if (res.status === 503) {
+            showLoginError('Service temporairement indisponible.');
+        } else {
+            showLoginError(data.error || 'Identifiants incorrects');
+        }
+    } catch (e) {
+        clearTimeout(timeout);
+        if (e.name === 'AbortError') {
+            showLoginError('Le serveur ne repond pas. Verifie ta connexion.');
+        } else {
+            showLoginError('Pas de connexion internet');
+        }
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+function finishLogin() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('mainApp').style.display = '';
+    const auth = getAuth();
+    if (auth) {
+        const initial = (auth.name || '?').charAt(0).toUpperCase();
+        document.getElementById('userInfo').innerHTML =
+            `<div class="user-avatar">${esc(initial)}</div>
+             <span class="user-name">Salut ${esc(auth.name || '')} !</span>`;
+    }
+    // Nettoyer le state monitor local
     const mon = getMonState();
     if (mon.alerts?.length) {
         const seen = new Set();
@@ -66,6 +143,21 @@ function checkAuth() {
     }
     setMonState(mon);
     initApp();
+}
+
+function logout() {
+    localStorage.removeItem(AUTH_KEY);
+    location.reload();
+}
+
+function checkAuth() {
+    const auth = getAuth();
+    if (auth?.pin) {
+        finishLogin();
+    } else {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('mainApp').style.display = 'none';
+    }
 }
 let statusInterval = null;
 
@@ -1321,6 +1413,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (input) {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') searchArtist();
+        });
+    }
+    // Login form: Enter to submit
+    const loginPin = document.getElementById('loginPin');
+    if (loginPin) {
+        loginPin.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') doLogin();
+        });
+    }
+    const loginName = document.getElementById('loginName');
+    if (loginName) {
+        loginName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('loginPin').focus();
         });
     }
 });

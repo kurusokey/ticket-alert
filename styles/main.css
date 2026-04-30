@@ -2551,6 +2551,34 @@ header h1 span { color: var(--accent-orange); }
     box-shadow: 0 4px 16px rgba(255,107,53,0.25);
 }
 
+/* ── Settings: logout + divider ── */
+.settings-divider {
+    border-top: 1px solid var(--border-primary);
+    margin: 1rem 0;
+}
+
+.btn-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 8px;
+    color: #ef4444;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-logout:hover {
+    background: rgba(239,68,68,0.2);
+    border-color: rgba(239,68,68,0.4);
+}
+
+.settings-row-danger .settings-label { color: #ef4444; }
+.settings-row-danger .settings-sublabel { color: #fca5a5; }
+
 /* ── Selection color ── */
 ::selection {
     background: rgba(255,107,53,0.2);
