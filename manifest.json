@@ -1,6 +1,6 @@
 {
-  "name": "goFindMyTickets",
-  "short_name": "goFMT",
+  "name": "Liberty Events",
+  "short_name": "Liberty Events",
   "description": "Surveillance billetterie — Push + Telegram",
   "start_url": "/",
   "id": "/",

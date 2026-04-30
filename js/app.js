@@ -1479,10 +1479,10 @@ function selectCalendarDate(dateStr) {
 
 async function shareApp() {
     const url = window.location.origin;
-    const text = 'goFindMyTickets — Ne rate plus jamais une ouverture de billetterie';
+    const text = 'Liberty Events — Ne rate plus jamais une ouverture de billetterie';
     if (navigator.share) {
         try {
-            await navigator.share({ title: 'goFindMyTickets', text, url });
+            await navigator.share({ title: 'Liberty Events', text, url });
         } catch {}
     } else {
         try {
@@ -1523,8 +1523,8 @@ async function shareEvent(id) {
     }
 
     const shareData = {
-        title: `${ev.name} — goFindMyTickets`,
-        text: `Surveille "${ev.name}" sur goFindMyTickets`,
+        title: `${ev.name} — Liberty Events`,
+        text: `Surveille "${ev.name}" sur Liberty Events`,
         url: shareUrl,
     };
 
