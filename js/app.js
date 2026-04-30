@@ -31,91 +31,25 @@ function initTheme() {
 // ══════════════════════════════════════
 
 const API = '';
-const AUTH_KEY = 'gfmt_auth';
 let events = [];
 let editingId = null;
 let pollInterval = null;
 
 // ══════════════════════════════════════
-// AUTH
+// AUTH (default user — no login required)
 // ══════════════════════════════════════
 
-function getAuth() {
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || null; }
-    catch { return null; }
-}
+const DEFAULT_PIN = '230223';
 
-function setAuth(data) {
-    localStorage.setItem(AUTH_KEY, JSON.stringify(data));
+function getAuth() {
+    return { pin: DEFAULT_PIN, name: 'User' };
 }
 
 function authHeaders() {
-    const auth = getAuth();
-    return auth?.pin ? { 'Authorization': `Bearer ${auth.pin}` } : {};
+    return { 'Authorization': `Bearer ${DEFAULT_PIN}` };
 }
 
-async function doAuth() {
-    const name = document.getElementById('authName').value.trim();
-    const pin = document.getElementById('authPin').value.trim();
-    if (!name) { showToast('Entre ton prenom', true); return; }
-    if (!/^\d{6}$/.test(pin)) { showToast('Le code PIN doit faire 6 chiffres', true); return; }
-
-    // Show loading state on button
-    const btn = document.querySelector('.auth-actions .btn-cta');
-    const originalText = btn ? btn.textContent : '';
-    if (btn) { btn.textContent = 'Connexion...'; btn.disabled = true; }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
-    try {
-        const res = await fetch(`${API}/api/auth`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, pin }),
-            signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        const data = await res.json();
-        if (data.ok) {
-            setAuth({ pin: data.pin, name: data.name });
-            if (data.isNew) showToast('Compte cree');
-            finishAuth();
-            if (data.isNew) showOnboarding();
-        } else if (res.status === 401) {
-            showToast('Code PIN incorrect', true);
-        } else if (res.status === 429) {
-            showToast('Trop de tentatives — patiente 1 minute', true);
-        } else if (res.status === 503) {
-            showToast('Service temporairement indisponible — reessaye dans quelques heures', true);
-        } else {
-            showToast(data.error || 'Erreur serveur', true);
-        }
-    } catch (e) {
-        clearTimeout(timeout);
-        if (e.name === 'AbortError') {
-            showToast('Le serveur ne repond pas — verifie ta connexion', true);
-        } else if (e.name === 'TypeError') {
-            showToast('Pas de connexion internet', true);
-        } else {
-            showToast('Erreur de connexion', true);
-        }
-    } finally {
-        if (btn) { btn.textContent = originalText; btn.disabled = false; }
-    }
-}
-
-function finishAuth() {
-    document.getElementById('authScreen').classList.add('hidden');
-    document.getElementById('mainApp').style.display = '';
-    const auth = getAuth();
-    if (auth) {
-        const initial = (auth.name || '?').charAt(0).toUpperCase();
-        document.getElementById('userInfo').innerHTML =
-            `<div class="user-avatar">${esc(initial)}</div>
-             <span class="user-name">Salut ${esc(auth.name || '')} !</span>
-             <a class="user-logout" onclick="logout()">Déconnexion</a>`;
-    }
+function checkAuth() {
     // Nettoyer et dedupliquer le state monitor local
     const mon = getMonState();
     if (mon.alerts?.length) {
@@ -128,25 +62,10 @@ function finishAuth() {
         });
     }
     if (mon.logs?.length) {
-        mon.logs = mon.logs.slice(-20); // garder que les 20 derniers logs
+        mon.logs = mon.logs.slice(-20);
     }
     setMonState(mon);
     initApp();
-}
-
-function logout() {
-    localStorage.removeItem(AUTH_KEY);
-    location.reload();
-}
-
-function checkAuth() {
-    const auth = getAuth();
-    if (auth?.pin) {
-        finishAuth();
-    } else {
-        document.getElementById('authScreen').classList.remove('hidden');
-        document.getElementById('mainApp').style.display = 'none';
-    }
 }
 let statusInterval = null;
 
@@ -615,8 +534,7 @@ async function apiCall(path, opts = {}) {
         if (res.ok) return await res.json();
         // Handle HTTP errors
         if (res.status === 401) {
-            showToast('Session expiree — reconnecte-toi', true);
-            logout();
+            showToast('Erreur d\'authentification', true);
             return null;
         }
         if (res.status === 429) {
@@ -1826,23 +1744,6 @@ async function loadCronHealth() {
             el.innerHTML = '<span class="cron-dot"></span>Cron inactif';
         }
     }
-}
-
-// ══════════════════════════════════════
-// ONBOARDING
-// ══════════════════════════════════════
-
-function showOnboarding() {
-    document.getElementById('onboarding').style.display = '';
-}
-
-function nextOnboardStep(step) {
-    document.querySelectorAll('.onboarding-step').forEach(s => s.style.display = 'none');
-    document.getElementById('onboardStep' + step).style.display = '';
-}
-
-function closeOnboarding() {
-    document.getElementById('onboarding').style.display = 'none';
 }
 
 // ══════════════════════════════════════
